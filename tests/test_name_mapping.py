@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from dature import load
+from dature import LoadMetadata, load
 from dature.sources_loader.json_ import JsonLoader
 
 
@@ -202,7 +202,8 @@ class TestLoadFunctionWithNameMapping:
         json_file = tmp_path / "config.json"
         json_file.write_text('{"userName": "TestUser", "apiKey": "key123"}')
 
-        result = load(str(json_file), name_style="lower_camel", dataclass_=Config)
+        metadata = LoadMetadata(file_=str(json_file), name_style="lower_camel")
+        result = load(metadata, Config)
 
         assert result.user_name == "TestUser"
         assert result.api_key == "key123"
@@ -218,7 +219,8 @@ class TestLoadFunctionWithNameMapping:
 
         field_mapping = {"name": "fullName", "age": "userAge"}
 
-        result = load(str(json_file), field_mapping=field_mapping, dataclass_=Config)
+        metadata = LoadMetadata(file_=str(json_file), field_mapping=field_mapping)
+        result = load(metadata, Config)
 
         assert result.name == "Jane"
         assert result.age == 40
@@ -227,7 +229,9 @@ class TestLoadFunctionWithNameMapping:
         json_file = tmp_path / "config.json"
         json_file.write_text('{"userName": "DecoratorTest", "isActive": true}')
 
-        @load(str(json_file), name_style="lower_camel")
+        metadata = LoadMetadata(file_=str(json_file), name_style="lower_camel")
+
+        @load(metadata)
         @dataclass
         class Config:
             user_name: str
@@ -244,7 +248,9 @@ class TestLoadFunctionWithNameMapping:
 
         field_mapping = {"extra": "extraField"}
 
-        @load(str(json_file), name_style="lower_camel", field_mapping=field_mapping)
+        metadata = LoadMetadata(file_=str(json_file), name_style="lower_camel", field_mapping=field_mapping)
+
+        @load(metadata)
         @dataclass
         class Config:
             user_name: str

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from dature import load
+from dature import LoadMetadata, load
 
 
 class TestmainAutodetection:
@@ -32,7 +32,9 @@ class TestmainAutodetection:
         config_file = tmp_path / f"config{extension}"
         config_file.write_text(content)
 
-        @load(file_=str(config_file), prefix=prefix)
+        metadata = LoadMetadata(file_=str(config_file), prefix=prefix)
+
+        @load(metadata)
         @dataclass
         class Config:
             test_var: str
@@ -49,7 +51,9 @@ class TestmainAutodetection:
         env_file = tmp_path / filename
         env_file.write_text("APP_NAME=EnvApp")
 
-        @load(file_=str(env_file))
+        metadata = LoadMetadata(file_=str(env_file))
+
+        @load(metadata)
         @dataclass
         class Config:
             app_name: str
@@ -66,7 +70,9 @@ class TestmainLoaderOverride:
         txt_file = tmp_path / "config.txt"
         txt_file.write_text('{"app_name": "OverrideApp"}')
 
-        @load(file_=str(txt_file), loader="json")
+        metadata = LoadMetadata(file_=str(txt_file), loader="json")
+
+        @load(metadata)
         @dataclass
         class Config:
             app_name: str
@@ -79,7 +85,9 @@ class TestmainLoaderOverride:
         env_file = tmp_path / ".env"
         env_file.write_text("APP_NAME=ExplicitEnv\nAPP_PORT=8080")
 
-        @load(file_=str(env_file), loader="envfile", prefix="APP_")
+        metadata = LoadMetadata(file_=str(env_file), loader="envfile", prefix="APP_")
+
+        @load(metadata)
         @dataclass
         class Config:
             name: str
@@ -99,7 +107,9 @@ class TestmainEnvMode:
         monkeypatch.setenv("APP_DEBUG", "true")
         monkeypatch.setenv("APP_PORT", "3000")
 
-        @load(prefix="APP_")
+        metadata = LoadMetadata(prefix="APP_")
+
+        @load(metadata)
         @dataclass
         class Config:
             name: str
@@ -180,9 +190,11 @@ class TestmainErrorHandling:
         unknown_file = tmp_path / "config.xyz"
         unknown_file.write_text("some data")
 
+        metadata = LoadMetadata(file_=str(unknown_file))
+
         with pytest.raises(ValueError, match="Cannot determine loader type"):
 
-            @load(file_=str(unknown_file))
+            @load(metadata)
             @dataclass
             class Config:
                 pass
@@ -192,10 +204,12 @@ class TestmainErrorHandling:
         config_file = tmp_path / "config.json"
         config_file.write_text('{"name": "test"}')
 
+        metadata = LoadMetadata(file_=str(config_file), loader="nonexistent_loader")
+
         # This should raise an error for non-existent loader
         with pytest.raises((ValueError, KeyError, AttributeError)):
 
-            @load(file_=str(config_file), loader="nonexistent_loader")
+            @load(metadata)
             @dataclass
             class Config:
                 name: str

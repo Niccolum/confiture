@@ -4,11 +4,11 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, overload
 
+from dature.metadata import LoadMetadata
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json_ import JsonLoader
 from dature.sources_loader.toml_ import TomlLoader
-from dature.types import DotSeparatedPath, FieldMapping, NameStyle
 
 if TYPE_CHECKING:
     from dature.sources_loader.base import ILoader
@@ -49,14 +49,14 @@ def _get_loader_class(loader_type: LoaderType) -> type["ILoader"]:
             raise ValueError(msg)
 
 
-def _get_loader_type(file_: str | None, loader: LoaderType | None) -> LoaderType:
-    if loader:
-        return loader
+def _get_loader_type(metadata: LoadMetadata) -> LoaderType:
+    if metadata.loader:
+        return metadata.loader
 
-    if not file_:
+    if not metadata.file_:
         return "env"
 
-    file_path = Path(file_)
+    file_path = Path(metadata.file_)
 
     if (extension := file_path.suffix.lower()) in EXTENSION_MAP:
         return EXTENSION_MAP[extension]
@@ -66,7 +66,7 @@ def _get_loader_type(file_: str | None, loader: LoaderType | None) -> LoaderType
 
     supported = ", ".join(EXTENSION_MAP.keys())
     msg = (
-        f"Cannot determine loader type for file '{file_}'. "
+        f"Cannot determine loader type for file '{metadata.file_}'. "
         f"Please specify loader explicitly or use a supported extension: {supported}"
     )
     raise ValueError(msg)
@@ -74,41 +74,36 @@ def _get_loader_type(file_: str | None, loader: LoaderType | None) -> LoaderType
 
 @overload
 def load[T](
-    file_: str | None = None,
-    loader: LoaderType | None = None,
-    prefix: DotSeparatedPath | None = None,
-    name_style: NameStyle | None = None,
-    field_mapping: FieldMapping | None = None,
-    *,
+    metadata: LoadMetadata | None,
+    /,
     dataclass_: type[T],
 ) -> T: ...
 
 
 @overload
 def load[T](
-    file_: str | None = None,
-    loader: LoaderType | None = None,
-    prefix: DotSeparatedPath | None = None,
-    name_style: NameStyle | None = None,
-    field_mapping: FieldMapping | None = None,
-    *,
+    metadata: LoadMetadata | None = None,
+    /,
     dataclass_: None = None,
 ) -> Callable[[type[T]], type[T]]: ...
 
 
-def load[T](  # noqa: PLR0913
-    file_: str | None = None,
-    loader: LoaderType | None = None,
-    prefix: DotSeparatedPath | None = None,
-    name_style: NameStyle | None = None,
-    field_mapping: FieldMapping | None = None,
-    *,
+def load[T](
+    metadata: LoadMetadata | None = None,
+    /,
     dataclass_: type[T] | None = None,
 ) -> T | Callable[[type[T]], type[T]]:
-    loader_type = _get_loader_type(file_, loader)
+    if metadata is None:
+        metadata = LoadMetadata()
+
+    loader_type = _get_loader_type(metadata)
     loader_class = _get_loader_class(loader_type)
-    loader_instance = loader_class(prefix=prefix, name_style=name_style, field_mapping=field_mapping)
-    file_path = Path(file_) if file_ else Path()
+    loader_instance = loader_class(
+        prefix=metadata.prefix,
+        name_style=metadata.name_style,
+        field_mapping=metadata.field_mapping,
+    )
+    file_path = Path(metadata.file_) if metadata.file_ else Path()
 
     def _load_config(cls: type[T]) -> type[T]:
         if not is_dataclass(cls):

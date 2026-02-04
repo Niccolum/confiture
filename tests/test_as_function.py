@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from dature import load
+from dature import LoadMetadata, load
 
 
 class TestLoadAsFunction:
@@ -36,7 +36,8 @@ class TestLoadAsFunction:
 
         expected_data = Config(test_var="value")
 
-        result = load(file_=str(config_file), prefix=prefix, dataclass_=Config)
+        metadata = LoadMetadata(file_=str(config_file), prefix=prefix)
+        result = load(metadata, Config)
 
         assert result == expected_data
 
@@ -52,6 +53,7 @@ class TestLoadAsFunction:
 
         expected_data = Config(name="EnvFunctionTest", debug=True)
 
-        config = load(prefix="APP_", dataclass_=Config)
+        metadata = LoadMetadata(prefix="APP_")
+        config = load(metadata, Config)
 
         assert config == expected_data

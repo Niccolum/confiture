@@ -1,0 +1,10 @@
+# Environment variable substitution
+database_url: ${DATABASE_URL}
+secret_key: ${SECRET_KEY}
+
+# Complex nested structure
+services:
+  cache:
+    host: ${REDIS_HOST}
+  queue:
+    host: ${QUEUE_HOST}

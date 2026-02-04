@@ -1,0 +1,36 @@
+import tomllib
+from datetime import date, datetime, time
+from pathlib import Path
+from typing import Any, cast
+
+from adaptix import loader
+from adaptix.provider import Provider
+
+from dature.sources_loader.base import ILoader
+from dature.sources_loader.loaders import (
+    bytearray_from_string,
+    date_passthrough,
+    datetime_passthrough,
+    none_from_empty_string,
+    optional_from_empty_string,
+    time_passthrough,
+)
+from dature.types import JSONValue
+
+
+class TomlLoader(ILoader):
+    def _get_additional_loaders(self) -> list[Provider]:
+        return [
+            loader(date, date_passthrough),
+            loader(datetime, datetime_passthrough),
+            loader(time, time_passthrough),
+            loader(bytearray, bytearray_from_string),
+            loader(type(None), none_from_empty_string),
+            loader(str | None, optional_from_empty_string),
+            loader(Any, optional_from_empty_string),
+        ]
+
+    def _load(self, path: Path) -> JSONValue:
+        with path.open("rb") as file_:
+            return cast("JSONValue", tomllib.load(file_))
+            return cast("JSONValue", tomllib.load(file_))

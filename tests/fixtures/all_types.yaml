@@ -1,0 +1,102 @@
+# Comprehensive test file with all Python basic types
+
+# SCALAR TYPES
+string_value: "hello world"
+integer_value: 42
+float_value: 3.14159
+boolean_value: true
+none_value: null
+
+# LISTS
+list_strings:
+  - item1
+  - item2
+  - item3
+
+list_integers:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+
+list_mixed:
+  - string
+  - 42
+  - 3.14
+  - true
+  - null
+
+list_nested:
+  - [a, b]
+  - [c, d]
+
+list_dicts:
+  - name: Alice
+    age: 30
+  - name: Bob
+    age: 25
+
+# TUPLES (as lists, adaptix will convert)
+tuple_simple: [1, 2, 3]
+tuple_mixed: ["text", 42, true]
+tuple_nested: [[1, 2, 3], ["a", "b", "c"]]
+
+# SETS (as lists, adaptix will convert)
+set_integers: [1, 2, 3, 4, 5]
+set_strings: [apple, banana, cherry]
+
+# DICTIONARIES
+dict_simple:
+  key1: value1
+  key2: value2
+
+dict_mixed:
+  string: text
+  number: 42
+  float: 3.14
+  bool: true
+  list: [1, 2, 3]
+
+dict_nested:
+  level1:
+    level2:
+      level3: deep_value
+
+dict_int_keys:
+  1: one
+  2: two
+  3: three
+
+# SPECIAL TYPES
+date_value: 2024-01-15
+datetime_value: 2024-01-15T10:30:00
+datetime_value_with_timezone: 2024-01-15T10:30:00+03:00
+datetime_value_with_z_timezone: 2024-01-15T10:30:00Z
+time_value: "10:30:00"
+bytes_value: "binary data"
+bytearray_value: "binary"
+complex_value: "1+2j"
+
+# EDGE CASES
+empty_string: ""
+empty_list: []
+empty_dict: {}
+zero_int: 0
+zero_float: 0.0
+false_bool: false
+
+# ADVANCED PATTERNS
+optional_string: null
+union_type: 42
+nested_optional:
+  - name: Alice
+    email: alice@example.com
+  - name: Bob
+    email: null
+
+# RANGE (as list)
+range_values: [0, 2, 4, 6, 8]
+
+# FROZENSET (as list, adaptix will convert)
+frozenset_value: [1, 2, 3, 4, 5]

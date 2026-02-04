@@ -1,0 +1,86 @@
+# Comprehensive test file with all Python basic types
+
+# SCALAR TYPES
+string_value = "hello world"
+integer_value = 42
+float_value = 3.14159
+boolean_value = true
+none_value = ""
+
+# LISTS
+list_strings = ["item1", "item2", "item3"]
+list_integers = [1, 2, 3, 4, 5]
+list_mixed = ["string", 42, 3.14, true, ""]
+list_nested = [["a", "b"], ["c", "d"]]
+range_values = [0, 2, 4, 6, 8]
+
+# TUPLES (as arrays in TOML)
+tuple_simple = [1, 2, 3]
+tuple_mixed = ["text", 42, true]
+tuple_nested = [[1, 2, 3], ["a", "b", "c"]]
+
+# SETS (as arrays in TOML)
+set_integers = [1, 2, 3, 4, 5]
+set_strings = ["apple", "banana", "cherry"]
+frozenset_value = [1, 2, 3, 4, 5]
+
+# SPECIAL TYPES (TOML native support)
+date_value = 2024-01-15
+datetime_value = 2024-01-15T10:30:00
+datetime_value_with_timezone = 2024-01-15T10:30:00+03:00
+datetime_value_with_z_timezone = 2024-01-15T10:30:00Z
+time_value = 10:30:00
+bytes_value = "binary data"
+bytearray_value = "binary"
+complex_value = "1+2j"
+
+# EDGE CASES
+empty_string = ""
+empty_list = []
+zero_int = 0
+zero_float = 0.0
+false_bool = false
+
+# ADVANCED PATTERNS
+optional_string = ""
+union_type = 42
+
+# DICTIONARIES (as tables in TOML)
+[dict_simple]
+key1 = "value1"
+key2 = "value2"
+
+[dict_mixed]
+string = "text"
+number = 42
+float = 3.14
+bool = true
+list = [1, 2, 3]
+
+[dict_nested.level1.level2]
+level3 = "deep_value"
+
+[dict_int_keys]
+"1" = "one"
+"2" = "two"
+"3" = "three"
+
+[empty_dict]
+
+# LIST OF DICTS (array of tables)
+[[list_dicts]]
+name = "Alice"
+age = 30
+
+[[list_dicts]]
+name = "Bob"
+age = 25
+
+# NESTED OPTIONAL (array of tables)
+[[nested_optional]]
+name = "Alice"
+email = "alice@example.com"
+
+[[nested_optional]]
+name = "Bob"
+email = ""

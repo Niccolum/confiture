@@ -1,0 +1,70 @@
+[project]
+name = "dature"
+version = "0.1.0"
+description = "Configuration loader with support for multiple formats (env, yaml, json, toml, ini)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "adaptix>=3.0.0b11",
+]
+
+[project.optional-dependencies]
+yaml = ["pyyaml>=6.0"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",      # pydocstyle
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # assert
+    "ANN",     # type annotations
+    "SLF001",  # private member access
+    "DTZ001",  # datetime without tzinfo
+    "PLR2004", # magic values in tests
+    "S105",    # possible hardcoded password
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+explicit_package_bases = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["no-untyped-def", "arg-type", "call-overload", "func-returns-value", "call-arg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+pythonpath = [
+    "src",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=8.3.5",
+    "ruff>=0.14.14",
+    "prek>=0.3.1",
+    "types-PyYAML>=6.0",
+]

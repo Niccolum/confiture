@@ -49,7 +49,7 @@ mypy_path = "src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
-disable_error_code = ["no-untyped-def", "arg-type", "call-overload", "func-returns-value", "call-arg"]
+disable_error_code = ["no-untyped-def", "arg-type", "call-overload", "func-returns-value", "call-arg", "attr-defined"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

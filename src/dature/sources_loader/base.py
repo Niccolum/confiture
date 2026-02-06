@@ -9,7 +9,12 @@ from adaptix.provider import Provider
 
 from dature.sources_loader.loaders.base import bytes_from_string, complex_from_string
 from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle
-from dature.validators.base import create_validator_providers, extract_validators_from_type
+from dature.validators.base import (
+    RootValidatorProtocol,
+    create_root_validator_providers,
+    create_validator_providers,
+    extract_validators_from_type,
+)
 
 T = TypeVar("T")
 
@@ -20,10 +25,12 @@ class ILoader(abc.ABC):
         prefix: DotSeparatedPath | None = None,
         name_style: NameStyle | None = None,
         field_mapping: FieldMapping | None = None,
+        root_validators: tuple[RootValidatorProtocol, ...] | None = None,
     ) -> None:
         self._prefix = prefix
         self._name_style = name_style
         self._field_mapping = field_mapping
+        self._root_validators = root_validators or ()
         self._retorts: dict[type, Retort] = {}
 
     def _additional_loaders(self) -> list[Provider]:
@@ -82,7 +89,7 @@ class ILoader(abc.ABC):
 
         return providers
 
-    def _create_retort(self, dataclass_: type[T]) -> Retort:
+    def _create_retort(self) -> Retort:
         default_loaders: list[Provider] = [
             loader(bytes, bytes_from_string),
             loader(complex, complex_from_string),
@@ -93,7 +100,19 @@ class ILoader(abc.ABC):
                 *default_loaders,
                 *self._additional_loaders(),
                 *self._get_name_mapping_provider(),
+            ],
+        )
+
+    def _create_validating_retort(self, dataclass_: type[T]) -> Retort:
+        root_validator_providers = create_root_validator_providers(
+            dataclass_,
+            self._root_validators,
+        )
+        return Retort(
+            strict_coercion=False,
+            recipe=[
                 *self._get_validator_providers(dataclass_),
+                *root_validator_providers,
             ],
         )
 
@@ -118,7 +137,7 @@ class ILoader(abc.ABC):
 
     def _transform_to_dataclass(self, data: JSONValue, dataclass_: type[T]) -> T:
         if dataclass_ not in self._retorts:
-            self._retorts[dataclass_] = self._create_retort(dataclass_)
+            self._retorts[dataclass_] = self._create_retort()
         return self._retorts[dataclass_].load(data, dataclass_)
 
     def load(self, path: Path, dataclass_: type[T]) -> T:

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dature.main import LoaderType
     from dature.types import DotSeparatedPath, FieldMapping, NameStyle
+    from dature.validators.base import RootValidatorProtocol
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -13,3 +14,4 @@ class LoadMetadata:
     prefix: "DotSeparatedPath | None" = None
     name_style: "NameStyle | None" = None
     field_mapping: "FieldMapping | None" = None
+    root_validators: "tuple[RootValidatorProtocol, ...] | None" = None

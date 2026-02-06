@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import fields, is_dataclass
+from dataclasses import asdict, fields, is_dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, overload
@@ -9,6 +9,7 @@ from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json_ import JsonLoader
 from dature.sources_loader.toml_ import TomlLoader
+from dature.validators.base import DataclassInstance
 
 if TYPE_CHECKING:
     from dature.sources_loader.base import ILoader
@@ -72,27 +73,32 @@ def _get_loader_type(metadata: LoadMetadata) -> LoaderType:
     raise ValueError(msg)
 
 
+def _ensure_retort(loader_instance: "ILoader", cls: type) -> None:
+    if cls not in loader_instance._retorts:  # noqa: SLF001
+        loader_instance._retorts[cls] = loader_instance._create_retort()  # noqa: SLF001
+
+
 @overload
-def load[T](
+def load(
     metadata: LoadMetadata | None,
     /,
-    dataclass_: type[T],
-) -> T: ...
+    dataclass_: type[DataclassInstance],
+) -> DataclassInstance: ...
 
 
 @overload
-def load[T](
+def load(
     metadata: LoadMetadata | None = None,
     /,
     dataclass_: None = None,
-) -> Callable[[type[T]], type[T]]: ...
+) -> Callable[[type[DataclassInstance]], type[DataclassInstance]]: ...
 
 
-def load[T](
+def load(  # noqa: C901
     metadata: LoadMetadata | None = None,
     /,
-    dataclass_: type[T] | None = None,
-) -> T | Callable[[type[T]], type[T]]:
+    dataclass_: type[DataclassInstance] | None = None,
+) -> DataclassInstance | Callable[[type[DataclassInstance]], type[DataclassInstance]]:
     if metadata is None:
         metadata = LoadMetadata()
 
@@ -102,21 +108,27 @@ def load[T](
         prefix=metadata.prefix,
         name_style=metadata.name_style,
         field_mapping=metadata.field_mapping,
+        root_validators=metadata.root_validators,
     )
     file_path = Path(metadata.file_) if metadata.file_ else Path()
 
-    def _load_config(cls: type[T]) -> type[T]:
+    def _load_config(cls: type[DataclassInstance]) -> type[DataclassInstance]:  # noqa: C901
         if not is_dataclass(cls):
             msg = f"{cls.__name__} must be a dataclass"
             raise TypeError(msg)
 
+        _ensure_retort(loader_instance, cls)
+        validating_retort = loader_instance._create_validating_retort(cls)  # noqa: SLF001
+        validation_loader = validating_retort.get_loader(cls)
         loaded_data: Any = loader_instance.load(file_path, cls)
+
         field_list = fields(cls)
         original_init = cls.__init__
+        original_post_init = getattr(cls, "__post_init__", None)
+        validating = False
 
-        def new_init(self: T, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+        def new_init(self: DataclassInstance, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
             explicit_fields = set(kwargs.keys())
-
             for i, _ in enumerate(args):
                 if i < len(field_list):
                     explicit_fields.add(field_list[i].name)
@@ -128,10 +140,36 @@ def load[T](
 
             original_init(self, *args, **complete_kwargs)
 
-        cls.__init__ = new_init  # type: ignore[assignment]
+            if original_post_init is None:
+                self.__post_init__()
+
+        def new_post_init(self: DataclassInstance) -> None:
+            nonlocal validating
+
+            if validating:
+                return
+
+            if original_post_init is not None:
+                original_post_init(self)
+
+            validating = True
+            try:
+                obj_dict = asdict(self)
+                validation_loader(obj_dict)
+            finally:
+                validating = False
+
+        cls.__init__ = new_init
+        cls.__post_init__ = new_post_init
         return cls
 
     if dataclass_ is not None:
-        return loader_instance.load(file_path, dataclass_)
+        _ensure_retort(loader_instance, dataclass_)
+        validating_retort = loader_instance._create_validating_retort(dataclass_)  # noqa: SLF001
+        validation_loader = validating_retort.get_loader(dataclass_)
+        result = loader_instance.load(file_path, dataclass_)
+        result_dict = asdict(result)  # type: ignore[call-overload]
+        validation_loader(result_dict)
+        return result
 
     return _load_config

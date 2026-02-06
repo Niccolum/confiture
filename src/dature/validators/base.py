@@ -1,14 +1,22 @@
 from collections.abc import Callable
-from typing import Annotated, Protocol, get_args, get_origin
+from typing import Annotated, Any, Protocol, get_args, get_origin
 
 from adaptix import P, validator
 from adaptix.provider import Provider
+
+
+class DataclassInstance(Protocol):
+    __dataclass_fields__: dict[str, Any]
 
 
 class ValidatorProtocol(Protocol):
     def get_validator_func(self) -> Callable[..., bool]: ...
 
     def get_error_message(self) -> str: ...
+
+
+class RootValidatorProtocol(Protocol):
+    def __call__(self, obj: DataclassInstance) -> bool: ...
 
 
 def extract_validators_from_type(field_type: object) -> list[ValidatorProtocol]:
@@ -38,6 +46,23 @@ def create_validator_providers(
             P[dataclass_][field_name],
             func,
             error,
+        )
+        providers.append(provider)
+
+    return providers
+
+
+def create_root_validator_providers(
+    dataclass_: type,
+    root_validators: tuple[RootValidatorProtocol, ...],
+) -> list[Provider]:
+    providers = []
+
+    for root_validator_func in root_validators:
+        provider = validator(
+            P[dataclass_],
+            root_validator_func,
+            "Root validation failed",
         )
         providers.append(provider)
 

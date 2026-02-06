@@ -39,7 +39,7 @@ class TestLoadAsFunction:
         metadata = LoadMetadata(file_=str(config_file), prefix=prefix)
         result = load(metadata, Config)
 
-        assert result == expected_data
+        assert result == expected_data  # type: ignore[comparison-overlap]
 
     def test_load_as_function_from_env(self, monkeypatch):
         """Test load() as function from environment variables."""
@@ -56,4 +56,4 @@ class TestLoadAsFunction:
         metadata = LoadMetadata(prefix="APP_")
         config = load(metadata, Config)
 
-        assert config == expected_data
+        assert config == expected_data  # type: ignore[comparison-overlap]

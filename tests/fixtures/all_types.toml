@@ -65,6 +65,18 @@ level3 = "deep_value"
 "2" = "two"
 "3" = "three"
 
+[[dict_list_dict.users]]
+name = "Alice"
+role = "admin"
+
+[[dict_list_dict.users]]
+name = "Bob"
+role = "user"
+
+[[dict_list_dict.teams]]
+name = "backend"
+size = 5
+
 [empty_dict]
 
 # LIST OF DICTS (array of tables)

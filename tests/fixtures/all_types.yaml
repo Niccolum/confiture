@@ -68,6 +68,16 @@ dict_int_keys:
   2: two
   3: three
 
+dict_list_dict:
+  users:
+    - name: Alice
+      role: admin
+    - name: Bob
+      role: user
+  teams:
+    - name: backend
+      size: 5
+
 # SPECIAL TYPES
 date_value: 2024-01-15
 datetime_value: 2024-01-15T10:30:00

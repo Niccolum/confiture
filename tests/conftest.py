@@ -1,8 +1,31 @@
 """Pytest configuration and shared fixtures."""
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from adaptix.load_error import ValidationLoadError
+
+
+def _collect_validation_errors(
+    exc: BaseException,
+    errors: list[ValidationLoadError],
+) -> None:
+    if isinstance(exc, ValidationLoadError):
+        errors.append(exc)
+    if hasattr(exc, "exceptions"):
+        for sub_exc in exc.exceptions:
+            _collect_validation_errors(sub_exc, errors)
+
+
+@pytest.fixture
+def collect_validation_errors() -> Callable[[BaseException], list[ValidationLoadError]]:
+    def _collect(exc: BaseException) -> list[ValidationLoadError]:
+        errors: list[ValidationLoadError] = []
+        _collect_validation_errors(exc, errors)
+        return errors
+
+    return _collect
 
 
 @pytest.fixture

@@ -96,6 +96,10 @@ class TestEnvLoader:
         monkeypatch.setenv("APP_DICT_INT_KEYS__1", "one")
         monkeypatch.setenv("APP_DICT_INT_KEYS__2", "two")
         monkeypatch.setenv("APP_DICT_INT_KEYS__3", "three")
+        monkeypatch.setenv(
+            "APP_DICT_LIST_DICT",
+            '{"users":[{"name":"Alice","role":"admin"},{"name":"Bob","role":"user"}],"teams":[{"name":"backend","size":5}]}',
+        )
 
         # Special types
         monkeypatch.setenv("APP_DATE_VALUE", "2024-01-15")

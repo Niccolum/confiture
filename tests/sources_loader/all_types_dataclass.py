@@ -36,6 +36,7 @@ class AllPythonTypesCompact:
     dict_mixed: dict[str, Any]
     dict_nested: dict[str, dict[str, Any]]
     dict_int_keys: dict[int, str]
+    dict_list_dict: dict[str, list[dict[str, Any]]]
 
     date_value: date
     datetime_value: datetime
@@ -91,6 +92,15 @@ EXPECTED_ALL_TYPES = AllPythonTypesCompact(
     },
     dict_nested={"level1": {"level2": {"level3": "deep_value"}}},
     dict_int_keys={1: "one", 2: "two", 3: "three"},
+    dict_list_dict={
+        "users": [
+            {"name": "Alice", "role": "admin"},
+            {"name": "Bob", "role": "user"},
+        ],
+        "teams": [
+            {"name": "backend", "size": 5},
+        ],
+    },
     date_value=date(2024, 1, 15),
     datetime_value=datetime(2024, 1, 15, 10, 30),
     datetime_value_with_timezone=datetime(2024, 1, 15, 10, 30, tzinfo=ZoneInfo("Europe/Moscow")),

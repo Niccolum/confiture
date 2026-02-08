@@ -1,6 +1,10 @@
+import types
 from typing import Annotated, Literal
 
 type JSONValue = dict[str, JSONValue] | list[JSONValue] | str | int | float | bool | None
+
+# Результат get_type_hints() / get_args(): конкретный класс или параметризованный дженерик
+type TypeAnnotation = type[object] | types.GenericAlias
 
 # Examples: "app", "app.database", "app.database.host"
 type DotSeparatedPath = Annotated[str, "Dot-separated path for nested dictionary navigation"]

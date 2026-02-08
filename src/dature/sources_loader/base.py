@@ -1,14 +1,14 @@
 import abc
 from dataclasses import fields, is_dataclass
 from pathlib import Path
-from typing import TypeVar, cast, get_args, get_origin, get_type_hints
+from typing import Annotated, TypeVar, cast, get_args, get_origin, get_type_hints
 
 from adaptix import NameStyle as AdaptixNameStyle
 from adaptix import Retort, loader, name_mapping
 from adaptix.provider import Provider
 
 from dature.sources_loader.loaders.base import bytes_from_string, complex_from_string
-from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle
+from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle, TypeAnnotation
 from dature.validators.base import (
     create_root_validator_providers,
     create_validator_providers,
@@ -77,19 +77,33 @@ class ILoader(abc.ABC):
                 field_providers = create_validator_providers(dataclass_, field.name, validators)
                 providers.extend(field_providers)
 
-            base_type = field_type
-            if get_origin(field_type) is not None:
-                args = get_args(field_type)
-                if args:
-                    base_type = args[0]
-
-            if is_dataclass(base_type):
-                nested_providers = self._get_validator_providers(
-                    cast("type[DataclassInstance]", base_type),
-                )
+            for nested_dc in self._find_nested_dataclasses(field_type):
+                nested_providers = self._get_validator_providers(nested_dc)
                 providers.extend(nested_providers)
 
         return providers
+
+    @staticmethod
+    def _find_nested_dataclasses(
+        field_type: TypeAnnotation,
+    ) -> list[type[DataclassInstance]]:
+        result: list[type[DataclassInstance]] = []
+        queue: list[TypeAnnotation] = [field_type]
+
+        while queue:
+            current = queue.pop()
+
+            if is_dataclass(current):
+                result.append(current)
+                continue
+
+            origin = get_origin(current)
+            if origin is Annotated:
+                queue.append(get_args(current)[0])
+            elif origin is not None:
+                queue.extend(get_args(current))
+
+        return result
 
     def _create_retort(self) -> Retort:
         default_loaders: list[Provider] = [

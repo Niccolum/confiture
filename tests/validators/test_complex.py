@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import pytest
 from adaptix.load_error import AggregateLoadError, ValidationLoadError
@@ -9,6 +10,8 @@ from dature import LoadMetadata, load
 from dature.validators.number import Ge, Le
 from dature.validators.sequence import MinItems, UniqueItems
 from dature.validators.string import MaxLength, MinLength, RegexPattern
+
+CollectErrors = Callable[[BaseException], list[ValidationLoadError]]
 
 
 class TestMultipleFields:
@@ -81,7 +84,7 @@ class TestNestedDataclass:
         assert result.address.city == "NYC"
         assert result.address.zip_code == "12345"
 
-    def test_all_invalid(self, tmp_path: Path):
+    def test_all_invalid(self, tmp_path: Path, collect_validation_errors: CollectErrors):
         @dataclass
         class Address:
             city: Annotated[str, MinLength(value=2)]
@@ -103,15 +106,7 @@ class TestNestedDataclass:
         with pytest.raises(AggregateLoadError) as exc_info:
             load(metadata, User)
 
-        def collect_validation_errors(exc: BaseException, errors: list[ValidationLoadError]) -> None:
-            if isinstance(exc, ValidationLoadError):
-                errors.append(exc)
-            if hasattr(exc, "exceptions"):
-                for sub_exc in exc.exceptions:
-                    collect_validation_errors(sub_exc, errors)
-
-        validation_errors: list[ValidationLoadError] = []
-        collect_validation_errors(exc_info.value, validation_errors)
+        validation_errors = collect_validation_errors(exc_info.value)
 
         assert len(validation_errors) == 4
 
@@ -140,3 +135,89 @@ class TestCustomErrorMessage:
         assert len(e.exceptions) == 1
         assert isinstance(e.exceptions[0], ValidationLoadError)
         assert e.exceptions[0].msg == "Age must be 18 or older"
+
+
+class TestDictListDict:
+    def test_raw_dict_field_validator_success(self, tmp_path: Path):
+        @dataclass
+        class Config:
+            groups: Annotated[dict[str, list[dict[str, Any]]], MinItems(value=1)]
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text(
+            '{"groups": {"admins": [{"name": "Alice"}]}}',
+        )
+
+        metadata = LoadMetadata(file_=str(json_file))
+        result = load(metadata, Config)
+
+        assert result.groups == {"admins": [{"name": "Alice"}]}
+
+    def test_raw_dict_field_validator_failure(self, tmp_path: Path):
+        @dataclass
+        class Config:
+            groups: Annotated[dict[str, list[dict[str, Any]]], MinItems(value=1)]
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text('{"groups": {}}')
+
+        metadata = LoadMetadata(file_=str(json_file))
+
+        with pytest.raises(AggregateLoadError) as exc_info:
+            load(metadata, Config)
+
+        e = exc_info.value
+        assert len(e.exceptions) == 1
+        assert isinstance(e.exceptions[0], ValidationLoadError)
+        assert e.exceptions[0].msg == "Value must have at least 1 items"
+
+    def test_nested_dataclass_in_dict_list_success(self, tmp_path: Path):
+        @dataclass
+        class Member:
+            name: Annotated[str, MinLength(value=2)]
+            role: Annotated[str, MinLength(value=3)]
+
+        @dataclass
+        class Config:
+            teams: dict[str, list[Member]]
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text(
+            '{"teams": {"backend": [{"name": "Alice", "role": "admin"}]}}',
+        )
+
+        metadata = LoadMetadata(file_=str(json_file))
+        result = load(metadata, Config)
+
+        assert result.teams["backend"][0].name == "Alice"
+        assert result.teams["backend"][0].role == "admin"
+
+    def test_nested_dataclass_in_dict_list_validation_fails(
+        self,
+        tmp_path: Path,
+        collect_validation_errors: CollectErrors,
+    ):
+        @dataclass
+        class Member:
+            name: Annotated[str, MinLength(value=2)]
+            role: Annotated[str, MinLength(value=3)]
+
+        @dataclass
+        class Config:
+            teams: dict[str, list[Member]]
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text(
+            '{"teams": {"backend": [{"name": "A", "role": "ab"}]}}',
+        )
+
+        metadata = LoadMetadata(file_=str(json_file))
+
+        with pytest.raises((AggregateLoadError, ValidationLoadError)) as exc_info:
+            load(metadata, Config)
+
+        validation_errors = collect_validation_errors(exc_info.value)
+
+        error_messages = [e.msg for e in validation_errors]
+        assert "Value must have at least 2 characters" in error_messages
+        assert "Value must have at least 3 characters" in error_messages

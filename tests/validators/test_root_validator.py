@@ -5,6 +5,7 @@ import pytest
 from adaptix.load_error import ValidationLoadError
 
 from dature import LoadMetadata, load
+from dature.validators.root import RootValidator
 
 
 class TestRootValidator:
@@ -22,7 +23,10 @@ class TestRootValidator:
         json_file = tmp_path / "config.json"
         json_file.write_text('{"port": 80, "user": "root"}')
 
-        metadata = LoadMetadata(file_=str(json_file), root_validators=(validate_config,))
+        metadata = LoadMetadata(
+            file_=str(json_file),
+            root_validators=(RootValidator(func=validate_config),),
+        )
         result = load(metadata, Config)
 
         assert result.port == 80
@@ -42,7 +46,10 @@ class TestRootValidator:
         json_file = tmp_path / "config.json"
         json_file.write_text('{"port": 80, "user": "admin"}')
 
-        metadata = LoadMetadata(file_=str(json_file), root_validators=(validate_config,))
+        metadata = LoadMetadata(
+            file_=str(json_file),
+            root_validators=(RootValidator(func=validate_config),),
+        )
 
         with pytest.raises(ValidationLoadError) as exc_info:
             load(metadata, Config)
@@ -68,7 +75,10 @@ class TestRootValidator:
 
         metadata = LoadMetadata(
             file_=str(json_file),
-            root_validators=(validate_min_max, validate_step),
+            root_validators=(
+                RootValidator(func=validate_min_max),
+                RootValidator(func=validate_step),
+            ),
         )
         result = load(metadata, Config)
 
@@ -94,7 +104,10 @@ class TestRootValidator:
 
         metadata = LoadMetadata(
             file_=str(json_file),
-            root_validators=(validate_min_max, validate_step),
+            root_validators=(
+                RootValidator(func=validate_min_max),
+                RootValidator(func=validate_step),
+            ),
         )
 
         with pytest.raises(ValidationLoadError) as exc_info:
@@ -115,7 +128,10 @@ class TestRootValidator:
         json_file = tmp_path / "config.json"
         json_file.write_text('{"port": 80, "host": "localhost"}')
 
-        metadata = LoadMetadata(file_=str(json_file), root_validators=(validate_config,))
+        metadata = LoadMetadata(
+            file_=str(json_file),
+            root_validators=(RootValidator(func=validate_config),),
+        )
 
         with pytest.raises(ValidationLoadError) as exc_info:
             load(metadata, Config)
@@ -132,7 +148,10 @@ class TestRootValidator:
         json_file = tmp_path / "config.json"
         json_file.write_text('{"username": "admin", "password": "short"}')
 
-        metadata = LoadMetadata(file_=str(json_file), root_validators=(validate_credentials,))
+        metadata = LoadMetadata(
+            file_=str(json_file),
+            root_validators=(RootValidator(func=validate_credentials),),
+        )
 
         @load(metadata)
         @dataclass
@@ -145,3 +164,33 @@ class TestRootValidator:
 
         e = exc_info.value
         assert e.msg == "Root validation failed"
+
+    def test_custom_error_message(self, tmp_path: Path):
+        @dataclass
+        class Config:
+            port: int
+            user: str
+
+        def validate_config(obj: Config) -> bool:
+            if obj.port < 1024:
+                return obj.user == "root"
+            return True
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text('{"port": 80, "user": "admin"}')
+
+        metadata = LoadMetadata(
+            file_=str(json_file),
+            root_validators=(
+                RootValidator(
+                    func=validate_config,
+                    error_message="Ports below 1024 require root user",
+                ),
+            ),
+        )
+
+        with pytest.raises(ValidationLoadError) as exc_info:
+            load(metadata, Config)
+
+        e = exc_info.value
+        assert e.msg == "Ports below 1024 require root user"

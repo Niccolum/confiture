@@ -15,10 +15,6 @@ class ValidatorProtocol(Protocol):
     def get_error_message(self) -> str: ...
 
 
-class RootValidatorProtocol(Protocol):
-    def __call__(self, obj: DataclassInstance) -> bool: ...
-
-
 def extract_validators_from_type(field_type: object) -> list[ValidatorProtocol]:
     validators: list[ValidatorProtocol] = []
 
@@ -54,15 +50,15 @@ def create_validator_providers(
 
 def create_root_validator_providers(
     dataclass_: type,
-    root_validators: tuple[RootValidatorProtocol, ...],
+    root_validators: tuple[ValidatorProtocol, ...],
 ) -> list[Provider]:
     providers = []
 
-    for root_validator_func in root_validators:
+    for root_validator in root_validators:
         provider = validator(
             P[dataclass_],
-            root_validator_func,
-            "Root validation failed",
+            root_validator.get_validator_func(),
+            root_validator.get_error_message(),
         )
         providers.append(provider)
 

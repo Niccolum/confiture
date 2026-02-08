@@ -7,6 +7,20 @@ float_value: 3.14159
 boolean_value: true
 none_value: null
 
+# NUMERIC
+decimal_value: "3.14159265358979323846264338327950288"
+float_inf: .inf
+float_nan: .nan
+
+# DATE/TIME
+date_value: 2024-01-15
+datetime_value: 2024-01-15T10:30:00
+datetime_value_with_timezone: 2024-01-15T10:30:00+03:00
+datetime_value_with_z_timezone: 2024-01-15T10:30:00Z
+time_value: "10:30:00"
+timedelta_value_with_day: "1 day, 2:30:00"
+timedelta_value_without_day: "2:30:00"
+
 # LISTS
 list_strings:
   - item1
@@ -78,15 +92,27 @@ dict_list_dict:
     - name: backend
       size: 5
 
-# SPECIAL TYPES
-date_value: 2024-01-15
-datetime_value: 2024-01-15T10:30:00
-datetime_value_with_timezone: 2024-01-15T10:30:00+03:00
-datetime_value_with_z_timezone: 2024-01-15T10:30:00Z
-time_value: "10:30:00"
+# BINARY/ENCODING
 bytes_value: "binary data"
 bytearray_value: "binary"
 complex_value: "1+2j"
+
+# PATHS
+path_value: "/usr/local/bin"
+pure_posix_path_value: "/etc/hosts"
+pure_windows_path_value: "C:/Windows/System32"
+
+# NETWORK
+ipv4_address_value: "192.168.1.1"
+ipv6_address_value: "2001:db8::1"
+ipv4_network_value: "192.168.1.0/24"
+ipv6_network_value: "2001:db8::/32"
+ipv4_interface_value: "192.168.1.1/24"
+ipv6_interface_value: "2001:db8::1/32"
+
+# IDENTIFIERS
+uuid_value: "550e8400-e29b-41d4-a716-446655440000"
+url_value: "https://example.com/path?query=value#fragment"
 
 # EDGE CASES
 empty_string: ""

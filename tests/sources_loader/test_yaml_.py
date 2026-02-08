@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dature.sources_loader.yaml_ import YamlLoader
-from tests.sources_loader.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact
+from tests.sources_loader.all_types_dataclass import (
+    EXPECTED_ALL_TYPES,
+    AllPythonTypesCompact,
+    assert_all_types_equal,
+)
 
 
 class TestYamlLoader:
@@ -15,7 +19,7 @@ class TestYamlLoader:
         loader = YamlLoader()
         result = loader.load(all_types_yaml_file, AllPythonTypesCompact)
 
-        assert result == EXPECTED_ALL_TYPES
+        assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 
     def test_yaml_with_prefix(self, prefixed_yaml_file: Path):
         @dataclass

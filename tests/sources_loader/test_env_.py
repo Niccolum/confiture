@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
-from tests.sources_loader.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact
+from tests.sources_loader.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact, assert_all_types_equal
 
 
 class TestEnvFileLoader:
@@ -43,7 +43,7 @@ class TestEnvFileLoader:
         loader = EnvFileLoader()
         result = loader.load(all_types_env_file, AllPythonTypesCompact)
 
-        assert result == EXPECTED_ALL_TYPES
+        assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 
     def test_empty_file(self, tmp_path: Path):
         """Test loading empty .env file."""
@@ -61,78 +61,93 @@ class TestEnvLoader:
 
     def test_comprehensive_type_conversion(self, monkeypatch):
         """Test loading from os.environ with full type coercion to dataclass."""
-        # Set all environment variables
-        monkeypatch.setenv("APP_STRING_VALUE", "hello world")
-        monkeypatch.setenv("APP_INTEGER_VALUE", "42")
-        monkeypatch.setenv("APP_FLOAT_VALUE", "3.14159")
-        monkeypatch.setenv("APP_BOOLEAN_VALUE", "true")
-        monkeypatch.setenv("APP_NONE_VALUE", "")
-
-        # Lists (JSON format)
-        monkeypatch.setenv("APP_LIST_STRINGS", '["item1","item2","item3"]')
-        monkeypatch.setenv("APP_LIST_INTEGERS", "[1,2,3,4,5]")
-        monkeypatch.setenv("APP_LIST_MIXED", '["string",42,3.14,true,null]')
-        monkeypatch.setenv("APP_LIST_NESTED", '[["a","b"],["c","d"]]')
-        monkeypatch.setenv("APP_LIST_DICTS", '[{"name":"Alice","age":30},{"name":"Bob","age":25}]')
-
-        # Tuples (JSON arrays)
-        monkeypatch.setenv("APP_TUPLE_SIMPLE", "[1,2,3]")
-        monkeypatch.setenv("APP_TUPLE_MIXED", '["text",42,true]')
-        monkeypatch.setenv("APP_TUPLE_NESTED", '[[1,2,3],["a","b","c"]]')
-
-        # Sets (JSON arrays)
-        monkeypatch.setenv("APP_SET_INTEGERS", "[1,2,3,4,5]")
-        monkeypatch.setenv("APP_SET_STRINGS", '["apple","banana","cherry"]')
-
-        # Dictionaries (__ notation)
-        monkeypatch.setenv("APP_DICT_SIMPLE__KEY1", "value1")
-        monkeypatch.setenv("APP_DICT_SIMPLE__KEY2", "value2")
-        monkeypatch.setenv("APP_DICT_MIXED__STRING", "text")
-        monkeypatch.setenv("APP_DICT_MIXED__NUMBER", "42")
-        monkeypatch.setenv("APP_DICT_MIXED__FLOAT", "3.14")
-        monkeypatch.setenv("APP_DICT_MIXED__BOOL", "true")
-        monkeypatch.setenv("APP_DICT_MIXED__LIST", "[1,2,3]")
-        monkeypatch.setenv("APP_DICT_NESTED__LEVEL1__LEVEL2__LEVEL3", "deep_value")
-        monkeypatch.setenv("APP_DICT_INT_KEYS__1", "one")
-        monkeypatch.setenv("APP_DICT_INT_KEYS__2", "two")
-        monkeypatch.setenv("APP_DICT_INT_KEYS__3", "three")
-        monkeypatch.setenv(
-            "APP_DICT_LIST_DICT",
-            '{"users":[{"name":"Alice","role":"admin"},{"name":"Bob","role":"user"}],"teams":[{"name":"backend","size":5}]}',
-        )
-
-        # Special types
-        monkeypatch.setenv("APP_DATE_VALUE", "2024-01-15")
-        monkeypatch.setenv("APP_DATETIME_VALUE", "2024-01-15T10:30:00")
-        monkeypatch.setenv("APP_DATETIME_VALUE_WITH_TIMEZONE", "2024-01-15T10:30:00+03:00")
-        monkeypatch.setenv("APP_DATETIME_VALUE_WITH_Z_TIMEZONE", "2024-01-15T10:30:00Z")
-        monkeypatch.setenv("APP_TIME_VALUE", "10:30:00")
-        monkeypatch.setenv("APP_BYTES_VALUE", "binary data")
-        monkeypatch.setenv("APP_BYTEARRAY_VALUE", "binary")
-        monkeypatch.setenv("APP_COMPLEX_VALUE", "1+2j")
-
-        # Edge cases
-        monkeypatch.setenv("APP_EMPTY_STRING", "")
-        monkeypatch.setenv("APP_EMPTY_LIST", "[]")
-        monkeypatch.setenv("APP_EMPTY_DICT", "{}")
-        monkeypatch.setenv("APP_ZERO_INT", "0")
-        monkeypatch.setenv("APP_ZERO_FLOAT", "0.0")
-        monkeypatch.setenv("APP_FALSE_BOOL", "false")
-
-        # Advanced patterns
-        monkeypatch.setenv("APP_OPTIONAL_STRING", "")
-        monkeypatch.setenv("APP_UNION_TYPE", "42")
-        monkeypatch.setenv(
-            "APP_NESTED_OPTIONAL",
-            '[{"name":"Alice","email":"alice@example.com"},{"name":"Bob","email":null}]',
-        )
-        monkeypatch.setenv("APP_RANGE_VALUES", "[0,2,4,6,8]")
-        monkeypatch.setenv("APP_FROZENSET_VALUE", "[1,2,3,4,5]")
+        env_vars = {
+            # Scalars
+            "APP_STRING_VALUE": "hello world",
+            "APP_INTEGER_VALUE": "42",
+            "APP_FLOAT_VALUE": "3.14159",
+            "APP_BOOLEAN_VALUE": "true",
+            "APP_NONE_VALUE": "",
+            # Numeric
+            "APP_DECIMAL_VALUE": "3.14159265358979323846264338327950288",
+            "APP_FLOAT_INF": "inf",
+            "APP_FLOAT_NAN": "nan",
+            # Date/time
+            "APP_DATE_VALUE": "2024-01-15",
+            "APP_DATETIME_VALUE": "2024-01-15T10:30:00",
+            "APP_DATETIME_VALUE_WITH_TIMEZONE": "2024-01-15T10:30:00+03:00",
+            "APP_DATETIME_VALUE_WITH_Z_TIMEZONE": "2024-01-15T10:30:00Z",
+            "APP_TIME_VALUE": "10:30:00",
+            "APP_TIMEDELTA_VALUE_WITH_DAY": "1 day, 2:30:00",
+            "APP_TIMEDELTA_VALUE_WITHOUT_DAY": "2:30:00",
+            # Lists
+            "APP_LIST_STRINGS": '["item1","item2","item3"]',
+            "APP_LIST_INTEGERS": "[1,2,3,4,5]",
+            "APP_LIST_MIXED": '["string",42,3.14,true,null]',
+            "APP_LIST_NESTED": '[["a","b"],["c","d"]]',
+            "APP_LIST_DICTS": '[{"name":"Alice","age":30},{"name":"Bob","age":25}]',
+            # Tuples
+            "APP_TUPLE_SIMPLE": "[1,2,3]",
+            "APP_TUPLE_MIXED": '["text",42,true]',
+            "APP_TUPLE_NESTED": '[[1,2,3],["a","b","c"]]',
+            # Sets
+            "APP_SET_INTEGERS": "[1,2,3,4,5]",
+            "APP_SET_STRINGS": '["apple","banana","cherry"]',
+            # Dicts
+            "APP_DICT_SIMPLE__KEY1": "value1",
+            "APP_DICT_SIMPLE__KEY2": "value2",
+            "APP_DICT_MIXED__STRING": "text",
+            "APP_DICT_MIXED__NUMBER": "42",
+            "APP_DICT_MIXED__FLOAT": "3.14",
+            "APP_DICT_MIXED__BOOL": "true",
+            "APP_DICT_MIXED__LIST": "[1,2,3]",
+            "APP_DICT_NESTED__LEVEL1__LEVEL2__LEVEL3": "deep_value",
+            "APP_DICT_INT_KEYS__1": "one",
+            "APP_DICT_INT_KEYS__2": "two",
+            "APP_DICT_INT_KEYS__3": "three",
+            "APP_DICT_LIST_DICT": (
+                '{"users":[{"name":"Alice","role":"admin"},{"name":"Bob","role":"user"}],'
+                '"teams":[{"name":"backend","size":5}]}'
+            ),
+            # Binary/encoding
+            "APP_BYTES_VALUE": "binary data",
+            "APP_BYTEARRAY_VALUE": "binary",
+            "APP_COMPLEX_VALUE": "1+2j",
+            # Paths
+            "APP_PATH_VALUE": "/usr/local/bin",
+            "APP_PURE_POSIX_PATH_VALUE": "/etc/hosts",
+            "APP_PURE_WINDOWS_PATH_VALUE": "C:/Windows/System32",
+            # Network
+            "APP_IPV4_ADDRESS_VALUE": "192.168.1.1",
+            "APP_IPV6_ADDRESS_VALUE": "2001:db8::1",
+            "APP_IPV4_NETWORK_VALUE": "192.168.1.0/24",
+            "APP_IPV6_NETWORK_VALUE": "2001:db8::/32",
+            "APP_IPV4_INTERFACE_VALUE": "192.168.1.1/24",
+            "APP_IPV6_INTERFACE_VALUE": "2001:db8::1/32",
+            # Identifiers
+            "APP_UUID_VALUE": "550e8400-e29b-41d4-a716-446655440000",
+            "APP_URL_VALUE": "https://example.com/path?query=value#fragment",
+            # Edge cases
+            "APP_EMPTY_STRING": "",
+            "APP_EMPTY_LIST": "[]",
+            "APP_EMPTY_DICT": "{}",
+            "APP_ZERO_INT": "0",
+            "APP_ZERO_FLOAT": "0.0",
+            "APP_FALSE_BOOL": "false",
+            # Union/optional
+            "APP_OPTIONAL_STRING": "",
+            "APP_UNION_TYPE": "42",
+            "APP_NESTED_OPTIONAL": '[{"name":"Alice","email":"alice@example.com"},{"name":"Bob","email":null}]',
+            "APP_RANGE_VALUES": "[0,2,4,6,8]",
+            "APP_FROZENSET_VALUE": "[1,2,3,4,5]",
+        }
+        for key, value in env_vars.items():
+            monkeypatch.setenv(key, value)
 
         loader = EnvLoader(prefix="APP_")
         result = loader.load(Path(), AllPythonTypesCompact)
 
-        assert result == EXPECTED_ALL_TYPES
+        assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 
     def test_prefix_filtering(self, monkeypatch):
         """Test that only variables with prefix are loaded."""

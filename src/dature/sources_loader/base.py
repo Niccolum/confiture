@@ -1,5 +1,6 @@
 import abc
 from dataclasses import fields, is_dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, TypeVar, cast, get_args, get_origin, get_type_hints
 
@@ -7,8 +8,13 @@ from adaptix import NameStyle as AdaptixNameStyle
 from adaptix import Retort, loader, name_mapping
 from adaptix.provider import Provider
 
-from dature.sources_loader.loaders.base import bytes_from_string, complex_from_string
-from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle, TypeAnnotation
+from dature.sources_loader.loaders.base import (
+    bytes_from_string,
+    complex_from_string,
+    timedelta_from_string,
+    url_from_string,
+)
+from dature.types import URL, DotSeparatedPath, FieldMapping, JSONValue, NameStyle, TypeAnnotation
 from dature.validators.base import (
     create_root_validator_providers,
     create_validator_providers,
@@ -109,6 +115,8 @@ class ILoader(abc.ABC):
         default_loaders: list[Provider] = [
             loader(bytes, bytes_from_string),
             loader(complex, complex_from_string),
+            loader(timedelta, timedelta_from_string),
+            loader(URL, url_from_string),
         ]
         return Retort(
             strict_coercion=False,

@@ -1,4 +1,9 @@
-from dature.sources_loader.loaders.base import bytes_from_string, complex_from_string
+from dature.sources_loader.loaders.base import (
+    bytes_from_string,
+    complex_from_string,
+    timedelta_from_string,
+    url_from_string,
+)
 from dature.sources_loader.loaders.common import (
     bool_from_string,
     bytearray_from_json_string,
@@ -40,5 +45,7 @@ __all__ = [
     "time_from_int",
     "time_from_string",
     "time_passthrough",
+    "timedelta_from_string",
     "tuple_from_json_string",
+    "url_from_string",
 ]

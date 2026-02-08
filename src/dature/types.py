@@ -1,5 +1,6 @@
 import types
 from typing import Annotated, Literal
+from urllib.parse import ParseResult
 
 type JSONValue = dict[str, JSONValue] | list[JSONValue] | str | int | float | bool | None
 
@@ -19,3 +20,5 @@ type NameStyle = Literal[
 ]
 
 type FieldMapping = dict[str, str]
+
+type URL = ParseResult

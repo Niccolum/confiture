@@ -1,6 +1,45 @@
+import re
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from dature.types import URL
+
+_TIMEDELTA_WITH_DAYS_RE = re.compile(
+    r"^(-?\d+)\s+days?,\s*(\d+):(\d{2}):(\d{2})(?:\.(\d+))?$",
+)
+_TIMEDELTA_TIME_ONLY_RE = re.compile(
+    r"^(\d+):(\d{2}):(\d{2})(?:\.(\d+))?$",
+)
+
+
 def bytes_from_string(value: str) -> bytes:
     return value.encode("utf-8")
 
 
 def complex_from_string(value: str) -> complex:
     return complex(value.replace(" ", ""))
+
+
+def timedelta_from_string(value: str) -> timedelta:
+    """Parse str(timedelta(...)) format: '1 day, 2:30:00', '0:45:00', '-1 day, 23:59:59'."""
+    if match := _TIMEDELTA_WITH_DAYS_RE.match(value):
+        days = int(match.group(1))
+        hours = int(match.group(2))
+        minutes = int(match.group(3))
+        seconds = int(match.group(4))
+        microseconds = int(match.group(5).ljust(6, "0")) if match.group(5) is not None else 0
+        return timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds, microseconds=microseconds)
+
+    if match := _TIMEDELTA_TIME_ONLY_RE.match(value):
+        hours = int(match.group(1))
+        minutes = int(match.group(2))
+        seconds = int(match.group(3))
+        microseconds = int(match.group(4).ljust(6, "0")) if match.group(4) is not None else 0
+        return timedelta(hours=hours, minutes=minutes, seconds=seconds, microseconds=microseconds)
+
+    msg = f"Invalid timedelta format: {value!r}"
+    raise ValueError(msg)
+
+
+def url_from_string(value: str) -> URL:
+    return urlparse(value)

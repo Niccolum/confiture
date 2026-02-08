@@ -7,7 +7,11 @@ from pathlib import Path
 import pytest
 
 from dature.sources_loader.ini_ import IniLoader
-from tests.sources_loader.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact
+from tests.sources_loader.all_types_dataclass import (
+    EXPECTED_ALL_TYPES,
+    AllPythonTypesCompact,
+    assert_all_types_equal,
+)
 
 
 class TestIniLoader:
@@ -18,7 +22,7 @@ class TestIniLoader:
         loader = IniLoader(prefix="all_types")
         result = loader.load(all_types_ini_file, AllPythonTypesCompact)
 
-        assert result == EXPECTED_ALL_TYPES
+        assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 
     def test_ini_sections(self, ini_sections_file: Path):
         """Test INI sections and DEFAULT inheritance."""

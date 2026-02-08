@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dature.sources_loader.toml_ import TomlLoader
-from tests.sources_loader.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact
+from tests.sources_loader.all_types_dataclass import (
+    EXPECTED_ALL_TYPES,
+    AllPythonTypesCompact,
+    assert_all_types_equal,
+)
 
 
 class TestTomlLoader:
@@ -15,7 +19,7 @@ class TestTomlLoader:
         loader = TomlLoader()
         result = loader.load(all_types_toml_file, AllPythonTypesCompact)
 
-        assert result == EXPECTED_ALL_TYPES
+        assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 
     def test_toml_with_prefix(self, prefixed_toml_file: Path):
         @dataclass

@@ -1,4 +1,6 @@
 from dature.sources_loader.loaders.base import (
+    base64url_bytes_from_string,
+    base64url_str_from_string,
     bytes_from_string,
     complex_from_string,
     timedelta_from_string,
@@ -26,6 +28,8 @@ from dature.sources_loader.loaders.toml_ import time_passthrough
 from dature.sources_loader.loaders.yaml_ import time_from_int
 
 __all__ = [
+    "base64url_bytes_from_string",
+    "base64url_str_from_string",
     "bool_from_string",
     "bytearray_from_json_string",
     "bytearray_from_string",

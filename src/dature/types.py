@@ -22,3 +22,6 @@ type NameStyle = Literal[
 type FieldMapping = dict[str, str]
 
 type URL = ParseResult
+
+type Base64UrlBytes = bytes
+type Base64UrlStr = str

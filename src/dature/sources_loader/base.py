@@ -9,12 +9,23 @@ from adaptix import Retort, loader, name_mapping
 from adaptix.provider import Provider
 
 from dature.sources_loader.loaders.base import (
+    base64url_bytes_from_string,
+    base64url_str_from_string,
     bytes_from_string,
     complex_from_string,
     timedelta_from_string,
     url_from_string,
 )
-from dature.types import URL, DotSeparatedPath, FieldMapping, JSONValue, NameStyle, TypeAnnotation
+from dature.types import (
+    URL,
+    Base64UrlBytes,
+    Base64UrlStr,
+    DotSeparatedPath,
+    FieldMapping,
+    JSONValue,
+    NameStyle,
+    TypeAnnotation,
+)
 from dature.validators.base import (
     create_root_validator_providers,
     create_validator_providers,
@@ -117,6 +128,8 @@ class ILoader(abc.ABC):
             loader(complex, complex_from_string),
             loader(timedelta, timedelta_from_string),
             loader(URL, url_from_string),
+            loader(Base64UrlBytes, base64url_bytes_from_string),
+            loader(Base64UrlStr, base64url_str_from_string),
         ]
         return Retort(
             strict_coercion=False,

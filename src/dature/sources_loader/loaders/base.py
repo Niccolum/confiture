@@ -1,8 +1,9 @@
+import base64
 import re
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from dature.types import URL
+from dature.types import URL, Base64UrlBytes, Base64UrlStr
 
 _TIMEDELTA_WITH_DAYS_RE = re.compile(
     r"^(-?\d+)\s+days?,\s*(\d+):(\d{2}):(\d{2})(?:\.(\d+))?$",
@@ -43,3 +44,11 @@ def timedelta_from_string(value: str) -> timedelta:
 
 def url_from_string(value: str) -> URL:
     return urlparse(value)
+
+
+def base64url_bytes_from_string(value: str) -> Base64UrlBytes:
+    return base64.urlsafe_b64decode(value)
+
+
+def base64url_str_from_string(value: str) -> Base64UrlStr:
+    return base64.urlsafe_b64decode(value).decode("utf-8")

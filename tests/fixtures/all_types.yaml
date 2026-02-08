@@ -96,6 +96,8 @@ dict_list_dict:
 bytes_value: "binary data"
 bytearray_value: "binary"
 complex_value: "1+2j"
+base64url_bytes_value: "SGVsbG8gV29ybGQ="
+base64url_str_value: "c2VjcmV0IHRva2Vu"
 
 # PATHS
 path_value: "/usr/local/bin"

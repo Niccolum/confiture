@@ -113,6 +113,8 @@ class TestEnvLoader:
             "APP_BYTES_VALUE": "binary data",
             "APP_BYTEARRAY_VALUE": "binary",
             "APP_COMPLEX_VALUE": "1+2j",
+            "APP_BASE64URL_BYTES_VALUE": "SGVsbG8gV29ybGQ=",
+            "APP_BASE64URL_STR_VALUE": "c2VjcmV0IHRva2Vu",
             # Paths
             "APP_PATH_VALUE": "/usr/local/bin",
             "APP_PURE_POSIX_PATH_VALUE": "/etc/hosts",

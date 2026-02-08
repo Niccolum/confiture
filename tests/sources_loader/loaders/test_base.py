@@ -6,6 +6,8 @@ from urllib.parse import urlparse
 import pytest
 
 from dature.sources_loader.loaders.base import (
+    base64url_bytes_from_string,
+    base64url_str_from_string,
     bytes_from_string,
     complex_from_string,
     timedelta_from_string,
@@ -74,3 +76,28 @@ def test_timedelta_from_string_invalid():
 )
 def test_url_from_string(input_value: str, expected):
     assert url_from_string(input_value) == expected
+
+
+@pytest.mark.parametrize(
+    ("input_value", "expected"),
+    [
+        ("SGVsbG8gV29ybGQ=", b"Hello World"),
+        ("", b""),
+        ("YWJj", b"abc"),
+        ("-__-", b"\xfb\xff\xfe"),
+    ],
+)
+def test_base64url_bytes_from_string(input_value: str, expected: bytes):
+    assert base64url_bytes_from_string(input_value) == expected
+
+
+@pytest.mark.parametrize(
+    ("input_value", "expected"),
+    [
+        ("SGVsbG8=", "Hello"),
+        ("", ""),
+        ("0L/RgNC40LLQtdGC", "\u043f\u0440\u0438\u0432\u0435\u0442"),
+    ],
+)
+def test_base64url_str_from_string(input_value: str, expected: str):
+    assert base64url_str_from_string(input_value) == expected

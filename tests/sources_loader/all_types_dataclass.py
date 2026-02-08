@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from dature.types import URL
+from dature.types import URL, Base64UrlBytes, Base64UrlStr
 
 
 @dataclass
@@ -76,6 +76,8 @@ class AllPythonTypesCompact:
     bytes_value: bytes
     bytearray_value: bytearray
     complex_value: complex
+    base64url_bytes_value: Base64UrlBytes
+    base64url_str_value: Base64UrlStr
 
     # Paths
     path_value: Path
@@ -171,6 +173,8 @@ EXPECTED_ALL_TYPES = AllPythonTypesCompact(
     bytes_value=b"binary data",
     bytearray_value=bytearray(b"binary"),
     complex_value=1 + 2j,
+    base64url_bytes_value=b"Hello World",
+    base64url_str_value="secret token",
     # Paths
     path_value=Path("/usr/local/bin"),
     pure_posix_path_value=PurePosixPath("/etc/hosts"),

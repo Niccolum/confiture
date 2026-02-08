@@ -1,18 +1,9 @@
-from collections.abc import Callable
-from typing import Annotated, Any, Protocol, get_args, get_origin
+from typing import Annotated, get_args, get_origin
 
 from adaptix import P, validator
 from adaptix.provider import Provider
 
-
-class DataclassInstance(Protocol):
-    __dataclass_fields__: dict[str, Any]
-
-
-class ValidatorProtocol(Protocol):
-    def get_validator_func(self) -> Callable[..., bool]: ...
-
-    def get_error_message(self) -> str: ...
+from dature.validators.protocols import ValidatorProtocol
 
 
 def extract_validators_from_type(field_type: object) -> list[ValidatorProtocol]:

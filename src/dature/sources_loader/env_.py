@@ -22,7 +22,7 @@ from dature.sources_loader.loaders import (
     tuple_from_json_string,
 )
 from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle
-from dature.validators.base import ValidatorProtocol
+from dature.validators.protocols import ValidatorProtocol
 
 
 def _set_nested(d: dict[Any, Any], keys: list[str], value: str) -> None:

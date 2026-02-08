@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from dature.sources_loader.base import ILoader
-from dature.validators.base import DataclassInstance
+from dature.validators.protocols import DataclassInstance
 
 
 def _merge_fields(

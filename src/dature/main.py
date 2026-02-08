@@ -5,7 +5,7 @@ from typing import overload
 from dature.metadata import LoadMetadata
 from dature.patcher import load_as_function, make_decorator
 from dature.sources_loader.resolver import resolve_loader
-from dature.validators.base import DataclassInstance
+from dature.validators.protocols import DataclassInstance
 
 
 @overload

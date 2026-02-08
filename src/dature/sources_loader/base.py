@@ -10,11 +10,11 @@ from adaptix.provider import Provider
 from dature.sources_loader.loaders.base import bytes_from_string, complex_from_string
 from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle
 from dature.validators.base import (
-    ValidatorProtocol,
     create_root_validator_providers,
     create_validator_providers,
     extract_validators_from_type,
 )
+from dature.validators.protocols import ValidatorProtocol
 
 T = TypeVar("T")
 

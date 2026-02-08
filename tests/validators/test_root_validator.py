@@ -116,7 +116,7 @@ class TestRootValidator:
         e = exc_info.value
         assert e.msg == "Root validation failed"
 
-    def test_root_validator_with_exception(self, tmp_path: Path):
+    def test_root_validator_privileged_port(self, tmp_path: Path):
         @dataclass
         class Config:
             port: int

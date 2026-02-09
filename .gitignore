@@ -60,3 +60,4 @@ htmlcov/
 
 .claude
 uv.lock
+tmp/

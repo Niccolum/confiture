@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
+from dature.fields import ByteSize, PaymentCardNumber, SecretStr
 from dature.types import URL, Base64UrlBytes, Base64UrlStr
 
 
@@ -78,6 +79,11 @@ class AllPythonTypesCompact:
     complex_value: complex
     base64url_bytes_value: Base64UrlBytes
     base64url_str_value: Base64UrlStr
+
+    # Custom fields
+    secret_str_value: SecretStr
+    payment_card_number_value: PaymentCardNumber
+    byte_size_value: ByteSize
 
     # Paths
     path_value: Path
@@ -175,6 +181,10 @@ EXPECTED_ALL_TYPES = AllPythonTypesCompact(
     complex_value=1 + 2j,
     base64url_bytes_value=b"Hello World",
     base64url_str_value="secret token",
+    # Custom fields
+    secret_str_value=SecretStr("supersecret123"),
+    payment_card_number_value=PaymentCardNumber("4111111111111111"),
+    byte_size_value=ByteSize("1.5 GB"),
     # Paths
     path_value=Path("/usr/local/bin"),
     pure_posix_path_value=PurePosixPath("/etc/hosts"),

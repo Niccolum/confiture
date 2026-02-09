@@ -115,6 +115,10 @@ class TestEnvLoader:
             "APP_COMPLEX_VALUE": "1+2j",
             "APP_BASE64URL_BYTES_VALUE": "SGVsbG8gV29ybGQ=",
             "APP_BASE64URL_STR_VALUE": "c2VjcmV0IHRva2Vu",
+            # Custom fields
+            "APP_SECRET_STR_VALUE": "supersecret123",
+            "APP_PAYMENT_CARD_NUMBER_VALUE": "4111111111111111",
+            "APP_BYTE_SIZE_VALUE": "1.5 GB",
             # Paths
             "APP_PATH_VALUE": "/usr/local/bin",
             "APP_PURE_POSIX_PATH_VALUE": "/etc/hosts",

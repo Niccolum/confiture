@@ -29,6 +29,7 @@ ignore = [
     "DTZ001",  # datetime without tzinfo
     "PLR2004", # magic values in tests
     "S105",    # possible hardcoded password
+    "FBT001",  # boolean argument in function definition
 ]
 
 [tool.mypy]

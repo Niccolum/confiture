@@ -5,11 +5,15 @@ from urllib.parse import urlparse
 
 import pytest
 
+from dature.fields import ByteSize, PaymentCardNumber, SecretStr
 from dature.sources_loader.loaders.base import (
     base64url_bytes_from_string,
     base64url_str_from_string,
+    byte_size_from_string,
     bytes_from_string,
     complex_from_string,
+    payment_card_number_from_string,
+    secret_str_from_string,
     timedelta_from_string,
     url_from_string,
 )
@@ -101,3 +105,38 @@ def test_base64url_bytes_from_string(input_value: str, expected: bytes):
 )
 def test_base64url_str_from_string(input_value: str, expected: str):
     assert base64url_str_from_string(input_value) == expected
+
+
+@pytest.mark.parametrize(
+    ("input_value", "expected"),
+    [
+        ("mysecret", SecretStr("mysecret")),
+        ("", SecretStr("")),
+    ],
+)
+def test_secret_str_from_string(input_value: str, expected: SecretStr):
+    assert secret_str_from_string(input_value) == expected
+
+
+@pytest.mark.parametrize(
+    ("input_value", "expected_brand"),
+    [
+        ("4111111111111111", "Visa"),
+        ("5500000000000004", "Mastercard"),
+    ],
+)
+def test_payment_card_number_from_string(input_value: str, expected_brand: str):
+    result = payment_card_number_from_string(input_value)
+    assert isinstance(result, PaymentCardNumber)
+    assert result.brand == expected_brand
+
+
+@pytest.mark.parametrize(
+    ("input_value", "expected"),
+    [
+        ("1.5 GB", ByteSize(1_500_000_000)),
+        (1024, ByteSize(1024)),
+    ],
+)
+def test_byte_size_from_string(input_value: str | int, expected: ByteSize):
+    assert byte_size_from_string(input_value) == expected

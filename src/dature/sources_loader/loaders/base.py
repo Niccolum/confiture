@@ -3,6 +3,7 @@ import re
 from datetime import timedelta
 from urllib.parse import urlparse
 
+from dature.fields import ByteSize, PaymentCardNumber, SecretStr
 from dature.types import URL, Base64UrlBytes, Base64UrlStr
 
 _TIMEDELTA_WITH_DAYS_RE = re.compile(
@@ -52,3 +53,15 @@ def base64url_bytes_from_string(value: str) -> Base64UrlBytes:
 
 def base64url_str_from_string(value: str) -> Base64UrlStr:
     return base64.urlsafe_b64decode(value).decode("utf-8")
+
+
+def secret_str_from_string(value: str) -> SecretStr:
+    return SecretStr(value)
+
+
+def payment_card_number_from_string(value: str) -> PaymentCardNumber:
+    return PaymentCardNumber(value)
+
+
+def byte_size_from_string(value: str | int) -> ByteSize:
+    return ByteSize(value)

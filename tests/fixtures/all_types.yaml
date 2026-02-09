@@ -99,6 +99,11 @@ complex_value: "1+2j"
 base64url_bytes_value: "SGVsbG8gV29ybGQ="
 base64url_str_value: "c2VjcmV0IHRva2Vu"
 
+# CUSTOM FIELDS
+secret_str_value: "supersecret123"
+payment_card_number_value: "4111111111111111"
+byte_size_value: "1.5 GB"
+
 # PATHS
 path_value: "/usr/local/bin"
 pure_posix_path_value: "/etc/hosts"

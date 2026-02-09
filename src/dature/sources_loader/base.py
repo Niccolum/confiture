@@ -8,11 +8,15 @@ from adaptix import NameStyle as AdaptixNameStyle
 from adaptix import Retort, loader, name_mapping
 from adaptix.provider import Provider
 
+from dature.fields import ByteSize, PaymentCardNumber, SecretStr
 from dature.sources_loader.loaders.base import (
     base64url_bytes_from_string,
     base64url_str_from_string,
+    byte_size_from_string,
     bytes_from_string,
     complex_from_string,
+    payment_card_number_from_string,
+    secret_str_from_string,
     timedelta_from_string,
     url_from_string,
 )
@@ -130,6 +134,9 @@ class ILoader(abc.ABC):
             loader(URL, url_from_string),
             loader(Base64UrlBytes, base64url_bytes_from_string),
             loader(Base64UrlStr, base64url_str_from_string),
+            loader(SecretStr, secret_str_from_string),
+            loader(PaymentCardNumber, payment_card_number_from_string),
+            loader(ByteSize, byte_size_from_string),
         ]
         return Retort(
             strict_coercion=False,

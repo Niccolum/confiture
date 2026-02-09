@@ -72,6 +72,10 @@
   "base64url_bytes_value": "SGVsbG8gV29ybGQ=",
   "base64url_str_value": "c2VjcmV0IHRva2Vu",
 
+  "secret_str_value": "supersecret123",
+  "payment_card_number_value": "4111111111111111",
+  "byte_size_value": "1.5 GB",
+
   "path_value": "/usr/local/bin",
   "pure_posix_path_value": "/etc/hosts",
   "pure_windows_path_value": "C:/Windows/System32",

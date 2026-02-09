@@ -1,8 +1,11 @@
 from dature.sources_loader.loaders.base import (
     base64url_bytes_from_string,
     base64url_str_from_string,
+    byte_size_from_string,
     bytes_from_string,
     complex_from_string,
+    payment_card_number_from_string,
+    secret_str_from_string,
     timedelta_from_string,
     url_from_string,
 )
@@ -31,6 +34,7 @@ __all__ = [
     "base64url_bytes_from_string",
     "base64url_str_from_string",
     "bool_from_string",
+    "byte_size_from_string",
     "bytearray_from_json_string",
     "bytearray_from_string",
     "bytes_from_string",
@@ -45,6 +49,8 @@ __all__ = [
     "list_from_json_string",
     "none_from_empty_string",
     "optional_from_empty_string",
+    "payment_card_number_from_string",
+    "secret_str_from_string",
     "set_from_json_string",
     "time_from_int",
     "time_from_string",

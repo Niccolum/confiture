@@ -14,7 +14,7 @@ from dature.sources_loader.resolver import (
     resolve_loader,
 )
 from dature.sources_loader.toml_ import TomlLoader
-from dature.sources_loader.yaml_ import YamlLoader
+from dature.sources_loader.yaml_ import Yaml11Loader, Yaml12Loader
 
 
 class TestGetLoaderType:
@@ -72,7 +72,9 @@ class TestGetLoaderClass:
         [
             ("env", EnvLoader),
             ("envfile", EnvFileLoader),
-            ("yaml", YamlLoader),
+            ("yaml", Yaml11Loader),
+            ("yaml1.1", Yaml11Loader),
+            ("yaml1.2", Yaml12Loader),
             ("json", JsonLoader),
             ("toml", TomlLoader),
             ("ini", IniLoader),

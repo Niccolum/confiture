@@ -1,0 +1,108 @@
+"""Tests for yaml_ module (Yaml12Loader)."""
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from dature.sources_loader.yaml_ import Yaml12Loader
+from tests.sources_loader.all_types_dataclass import (
+    EXPECTED_ALL_TYPES,
+    AllPythonTypesCompact,
+    assert_all_types_equal,
+)
+
+
+class TestYaml12Loader:
+    """Tests for Yaml12Loader class."""
+
+    def test_comprehensive_type_conversion(self, all_types_yaml_file: Path):
+        """Test loading YAML with full type coercion to dataclass."""
+        loader = Yaml12Loader()
+        result = loader.load(all_types_yaml_file, AllPythonTypesCompact)
+
+        assert_all_types_equal(result, EXPECTED_ALL_TYPES)
+
+    def test_yaml_with_prefix(self, prefixed_yaml_file: Path):
+        @dataclass
+        class PrefixedConfig:
+            name: str
+            port: int
+            debug: bool
+            environment: str
+
+        expected_data = PrefixedConfig(
+            name="PrefixedApp",
+            port=9000,
+            debug=False,
+            environment="production",
+        )
+        loader = Yaml12Loader(prefix="app")
+
+        result = loader.load(prefixed_yaml_file, PrefixedConfig)
+
+        assert result == expected_data
+
+    def test_yaml_env_var_substitution(self, yaml_config_with_env_vars_file: Path, monkeypatch):
+        """Test YAML environment variable substitution."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/db")
+        monkeypatch.setenv("SECRET_KEY", "my_secret")
+        monkeypatch.setenv("REDIS_HOST", "redis.local")
+        monkeypatch.setenv("QUEUE_HOST", "queue.local")
+
+        @dataclass
+        class Services:
+            cache: dict[str, str]
+            queue: dict[str, str]
+
+        @dataclass
+        class EnvConfig:
+            database_url: str
+            secret_key: str
+            services: Services
+
+        loader = Yaml12Loader()
+        result = loader.load(yaml_config_with_env_vars_file, EnvConfig)
+
+        assert result.database_url == "postgresql://localhost/db"
+        assert result.secret_key == "my_secret"
+        assert result.services.cache == {"host": "redis.local"}
+        assert result.services.queue == {"host": "queue.local"}
+
+    def test_yaml_dollar_sign_mid_string_existing_var(self, tmp_path: Path, monkeypatch):
+        monkeypatch.setenv("abc", "replaced")
+
+        yaml_file = tmp_path / "dollar.yaml"
+        yaml_file.write_text("value: prefix$abc/suffix")
+
+        @dataclass
+        class Config:
+            value: str
+
+        loader = Yaml12Loader()
+        result = loader.load(yaml_file, Config)
+
+        assert result.value == "prefixreplaced/suffix"
+
+    def test_yaml_dollar_sign_mid_string_missing_var(self, tmp_path: Path, monkeypatch):
+        monkeypatch.delenv("nonexistent", raising=False)
+
+        yaml_file = tmp_path / "dollar.yaml"
+        yaml_file.write_text("value: prefix$nonexistent/suffix")
+
+        @dataclass
+        class Config:
+            value: str
+
+        loader = Yaml12Loader()
+        result = loader.load(yaml_file, Config)
+
+        assert result.value == "prefix$nonexistent/suffix"
+
+    def test_yaml_empty_file(self, tmp_path: Path):
+        """Test loading empty YAML file."""
+        yaml_file = tmp_path / "empty.yaml"
+        yaml_file.write_text("")
+
+        loader = Yaml12Loader()
+        data = loader._load(yaml_file)
+
+        assert data is None

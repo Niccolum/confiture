@@ -1,9 +1,9 @@
-"""Tests for yaml_ module (YamlLoader)."""
+"""Tests for yaml_ module (Yaml11Loader)."""
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from dature.sources_loader.yaml_ import YamlLoader
+from dature.sources_loader.yaml_ import Yaml11Loader
 from tests.sources_loader.all_types_dataclass import (
     EXPECTED_ALL_TYPES,
     AllPythonTypesCompact,
@@ -11,12 +11,12 @@ from tests.sources_loader.all_types_dataclass import (
 )
 
 
-class TestYamlLoader:
-    """Tests for YamlLoader class."""
+class TestYaml11Loader:
+    """Tests for Yaml11Loader class."""
 
     def test_comprehensive_type_conversion(self, all_types_yaml_file: Path):
         """Test loading YAML with full type coercion to dataclass."""
-        loader = YamlLoader()
+        loader = Yaml11Loader()
         result = loader.load(all_types_yaml_file, AllPythonTypesCompact)
 
         assert_all_types_equal(result, EXPECTED_ALL_TYPES)
@@ -35,7 +35,7 @@ class TestYamlLoader:
             debug=False,
             environment="production",
         )
-        loader = YamlLoader(prefix="app")
+        loader = Yaml11Loader(prefix="app")
 
         result = loader.load(prefixed_yaml_file, PrefixedConfig)
 
@@ -59,7 +59,7 @@ class TestYamlLoader:
             secret_key: str
             services: Services
 
-        loader = YamlLoader()
+        loader = Yaml11Loader()
         result = loader.load(yaml_config_with_env_vars_file, EnvConfig)
 
         assert result.database_url == "postgresql://localhost/db"
@@ -77,7 +77,7 @@ class TestYamlLoader:
         class Config:
             value: str
 
-        loader = YamlLoader()
+        loader = Yaml11Loader()
         result = loader.load(yaml_file, Config)
 
         assert result.value == "prefixreplaced/suffix"
@@ -92,7 +92,7 @@ class TestYamlLoader:
         class Config:
             value: str
 
-        loader = YamlLoader()
+        loader = Yaml11Loader()
         result = loader.load(yaml_file, Config)
 
         assert result.value == "prefix$nonexistent/suffix"
@@ -102,7 +102,7 @@ class TestYamlLoader:
         yaml_file = tmp_path / "empty.yaml"
         yaml_file.write_text("")
 
-        loader = YamlLoader()
+        loader = Yaml11Loader()
         data = loader._load(yaml_file)
 
         assert data is None

@@ -37,6 +37,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.pylint]
+max-args = 6
 max-returns = 8
 
 [tool.mypy]

@@ -76,6 +76,7 @@ class LoadMetadata:
     name_style: NameStyle | None = None
     field_mapping: dict[str, str] | None = None
     root_validators: tuple[ValidatorProtocol, ...] | None = None
+    enable_expand_env_vars: bool = True
 ```
 
 ### prefix
@@ -373,12 +374,18 @@ class Config:
 
 ## ENV Variable Substitution
 
-All file formats support `$VAR` and `${VAR}` substitution:
+All file formats support `$VAR` and `${VAR}` substitution. Environment variables in string values are automatically expanded using `os.path.expandvars`:
 
 ```yaml
 # config.yaml
 api_url: $BASE_URL/api/v1
 secret: ${SECRET_KEY}
+```
+
+If your config contains literal `$` characters that should not be treated as variable references, disable substitution with `enable_expand_env_vars=False`:
+
+```python
+config = load(LoadMetadata(file_="config.yaml", enable_expand_env_vars=False), Config)
 ```
 
 ## Error Messages

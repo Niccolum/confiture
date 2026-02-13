@@ -34,11 +34,13 @@ def _set_nested(d: dict[Any, Any], keys: list[str], value: str) -> None:
 class EnvLoader(ILoader):
     def __init__(
         self,
+        *,
         prefix: DotSeparatedPath | None = None,
         split_symbols: str = "__",
         name_style: NameStyle | None = None,
         field_mapping: FieldMapping | None = None,
         root_validators: tuple[ValidatorProtocol, ...] | None = None,
+        enable_expand_env_vars: bool = True,
     ) -> None:
         self._split_symbols = split_symbols
         super().__init__(
@@ -46,6 +48,7 @@ class EnvLoader(ILoader):
             name_style=name_style,
             field_mapping=field_mapping,
             root_validators=root_validators,
+            enable_expand_env_vars=enable_expand_env_vars,
         )
 
     def _additional_loaders(self) -> list[Provider]:
@@ -74,7 +77,9 @@ class EnvLoader(ILoader):
         for key, value in data_dict.items():
             self._pre_processed_row(key=key, value=value, result=result)
 
-        return self._expand_env_vars(result)
+        if self._enable_expand_env_vars:
+            return self._expand_env_vars(result)
+        return result
 
     def _pre_processed_row(self, key: str, value: str, result: dict[str, JSONValue]) -> None:
         if self._prefix and not key.startswith(self._prefix):
@@ -110,4 +115,6 @@ class EnvFileLoader(EnvLoader):
         return env_vars
 
     def _pre_processing(self, data: JSONValue) -> JSONValue:
-        return self._expand_env_vars(data)
+        if self._enable_expand_env_vars:
+            return self._expand_env_vars(data)
+        return data

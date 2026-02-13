@@ -86,6 +86,7 @@ def resolve_loader(metadata: LoadMetadata) -> ILoader:
         "name_style": metadata.name_style,
         "field_mapping": metadata.field_mapping,
         "root_validators": metadata.root_validators,
+        "enable_expand_env_vars": metadata.enable_expand_env_vars,
     }
 
     if issubclass(loader_class, EnvLoader):

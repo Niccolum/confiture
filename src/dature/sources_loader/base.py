@@ -44,15 +44,18 @@ T = TypeVar("T")
 class ILoader(abc.ABC):
     def __init__(
         self,
+        *,
         prefix: DotSeparatedPath | None = None,
         name_style: NameStyle | None = None,
         field_mapping: FieldMapping | None = None,
         root_validators: tuple[ValidatorProtocol, ...] | None = None,
+        enable_expand_env_vars: bool = True,
     ) -> None:
         self._prefix = prefix
         self._name_style = name_style
         self._field_mapping = field_mapping
         self._root_validators = root_validators or ()
+        self._enable_expand_env_vars = enable_expand_env_vars
         self.retorts: dict[type, Retort] = {}
 
     def _additional_loaders(self) -> list[Provider]:
@@ -189,7 +192,9 @@ class ILoader(abc.ABC):
 
     def _pre_processing(self, data: JSONValue) -> JSONValue:
         prefixed = self._apply_prefix(data)
-        return self._expand_env_vars(prefixed)
+        if self._enable_expand_env_vars:
+            return self._expand_env_vars(prefixed)
+        return prefixed
 
     def transform_to_dataclass(self, data: JSONValue, dataclass_: type[T]) -> T:
         if dataclass_ not in self.retorts:

@@ -23,6 +23,7 @@ class LoadMetadata:
     name_style: "NameStyle | None" = None
     field_mapping: "FieldMapping | None" = None
     root_validators: "tuple[ValidatorProtocol, ...] | None" = None
+    enable_expand_env_vars: bool = True
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -11,8 +11,14 @@ from dature.types import JSONValue
 class MockLoader(ILoader):
     """Mock loader for testing base class functionality."""
 
-    def __init__(self, prefix: str | None = None, test_data: JSONValue = None):
-        super().__init__(prefix=prefix)
+    def __init__(
+        self,
+        *,
+        prefix: str | None = None,
+        test_data: JSONValue = None,
+        enable_expand_env_vars: bool = True,
+    ):
+        super().__init__(prefix=prefix, enable_expand_env_vars=enable_expand_env_vars)
         self._test_data = test_data or {}
 
     def _load(self, path: Path) -> JSONValue:  # noqa: ARG002
@@ -335,3 +341,23 @@ class TestFieldMapping:
         assert result.name == "Charlie"
         assert result.address.city == "LA"
         assert result.address.street == "Main St"
+
+
+class TestExpandEnvVars:
+    def test_expand_env_vars_enabled(self, monkeypatch):
+        monkeypatch.setenv("DATURE_TEST_HOST", "localhost")
+        data = {"host": "$DATURE_TEST_HOST", "port": 8080}
+        loader = MockLoader(test_data=data)
+
+        result = loader.load(Path(), dict)
+
+        assert result == {"host": "localhost", "port": 8080}
+
+    def test_expand_env_vars_disabled(self, monkeypatch):
+        monkeypatch.setenv("DATURE_TEST_HOST", "localhost")
+        data = {"host": "$DATURE_TEST_HOST", "port": 8080}
+        loader = MockLoader(test_data=data, enable_expand_env_vars=False)
+
+        result = loader.load(Path(), dict)
+
+        assert result == {"host": "$DATURE_TEST_HOST", "port": 8080}

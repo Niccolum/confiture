@@ -1,15 +1,19 @@
 class TablePathFinder:
-    def __init__(self, content: str):
+    def __init__(self, content: str) -> None:
         self.lines = content.splitlines()
 
     def find_line(self, target_path: list[str]) -> int:
         target_key = target_path[-1]
         target_parents = target_path[:-1]
-        current_section = []
+        current_section: list[str] = []
 
         for i, line in enumerate(self.lines, 1):
             stripped = line.strip()
             if not stripped or stripped.startswith(("#", ";")):
+                continue
+
+            # Continuation line (starts with whitespace)
+            if line[0] in (" ", "\t"):
                 continue
 
             # Working with sections [section] or [parent.child]

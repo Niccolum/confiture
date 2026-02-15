@@ -14,6 +14,8 @@ def load[T](
     metadata: LoadMetadata | MergeMetadata | tuple[LoadMetadata, ...] | None,
     /,
     dataclass_: type[T],
+    *,
+    debug: bool = False,
 ) -> T: ...
 
 
@@ -24,6 +26,7 @@ def load(
     dataclass_: None = None,
     *,
     cache: bool = True,
+    debug: bool = False,
 ) -> Callable[[type[DataclassInstance]], type[DataclassInstance]]: ...
 
 
@@ -33,14 +36,15 @@ def load(
     dataclass_: type[Any] | None = None,
     *,
     cache: bool = True,
+    debug: bool = False,
 ) -> Any:
     if isinstance(metadata, tuple):
         metadata = MergeMetadata(sources=metadata)
 
     if isinstance(metadata, MergeMetadata):
         if dataclass_ is not None:
-            return merge_load_as_function(metadata, dataclass_)
-        return merge_make_decorator(metadata, cache=cache)
+            return merge_load_as_function(metadata, dataclass_, debug=debug)
+        return merge_make_decorator(metadata, cache=cache, debug=debug)
 
     if metadata is None:
         metadata = LoadMetadata()
@@ -54,6 +58,7 @@ def load(
             file_path=file_path,
             dataclass_=dataclass_,
             metadata=metadata,
+            debug=debug,
         )
 
     return make_decorator(
@@ -61,4 +66,5 @@ def load(
         file_path=file_path,
         metadata=metadata,
         cache=cache,
+        debug=debug,
     )

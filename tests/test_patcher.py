@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from dature.metadata import LoadMetadata
-from dature.patcher import _merge_fields, load_as_function, make_decorator
+from dature.patcher import load_as_function, make_decorator, merge_fields
 from dature.sources_loader.json_ import JsonLoader
 
 
@@ -30,7 +30,7 @@ class TestMergeFields:
     def test_no_explicit_fields(self):
         loaded = self.Loaded()
 
-        result = _merge_fields(loaded, self._field_list(), (), {})
+        result = merge_fields(loaded, self._field_list(), (), {})
 
         assert result == {"name": "loaded_name", "port": 8080, "debug": True}
 
@@ -38,28 +38,28 @@ class TestMergeFields:
         loaded = self.Loaded()
         kwargs = {"name": "explicit", "port": 9090, "debug": False}
 
-        result = _merge_fields(loaded, self._field_list(), (), kwargs)
+        result = merge_fields(loaded, self._field_list(), (), kwargs)
 
         assert result == {"name": "explicit", "port": 9090, "debug": False}
 
     def test_partial_kwargs(self):
         loaded = self.Loaded()
 
-        result = _merge_fields(loaded, self._field_list(), (), {"name": "explicit"})
+        result = merge_fields(loaded, self._field_list(), (), {"name": "explicit"})
 
         assert result == {"name": "explicit", "port": 8080, "debug": True}
 
     def test_positional_args(self):
         loaded = self.Loaded()
 
-        result = _merge_fields(loaded, self._field_list(), ("positional_name",), {})
+        result = merge_fields(loaded, self._field_list(), ("positional_name",), {})
 
         assert result == {"port": 8080, "debug": True}
 
     def test_mixed_args_and_kwargs(self):
         loaded = self.Loaded()
 
-        result = _merge_fields(
+        result = merge_fields(
             loaded,
             self._field_list(),
             ("positional_name",),
@@ -71,7 +71,7 @@ class TestMergeFields:
     def test_args_beyond_field_count_ignored(self):
         loaded = self.Loaded()
 
-        result = _merge_fields(
+        result = merge_fields(
             loaded,
             self._field_list(),
             ("a", "b", "c", "extra"),
@@ -274,6 +274,7 @@ class TestLoadAsFunction:
             file_path=json_file,
             dataclass_=Config,
             metadata=metadata,
+            debug=False,
         )
 
         assert result.name == "test"
@@ -293,6 +294,7 @@ class TestLoadAsFunction:
             file_path=json_file,
             dataclass_=Config,
             metadata=metadata,
+            debug=False,
         )
 
         assert result.name == "nested"

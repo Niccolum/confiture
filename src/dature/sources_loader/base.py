@@ -1,4 +1,5 @@
 import abc
+import logging
 import os
 from dataclasses import fields, is_dataclass
 from datetime import timedelta
@@ -39,6 +40,8 @@ from dature.validators.base import (
 from dature.validators.protocols import DataclassInstance, ValidatorProtocol
 
 T = TypeVar("T")
+
+logger = logging.getLogger("dature")
 
 
 class ILoader(abc.ABC):
@@ -203,9 +206,24 @@ class ILoader(abc.ABC):
 
     def load_raw(self, path: Path) -> JSONValue:
         data = self._load(path)
-        return self._pre_processing(data)
+        processed = self._pre_processing(data)
+        logger.debug(
+            "[%s] load_raw: path=%s, raw_keys=%s, after_preprocessing_keys=%s",
+            type(self).__name__,
+            path,
+            sorted(data.keys()) if isinstance(data, dict) else "<non-dict>",
+            sorted(processed.keys()) if isinstance(processed, dict) else "<non-dict>",
+        )
+        return processed
 
     def load(self, path: Path, dataclass_: type[T]) -> T:
         data = self._load(path)
         pre_processed_data = self._pre_processing(data)
+        logger.debug(
+            "[%s] load: path=%s, target=%s, data=%s",
+            type(self).__name__,
+            path,
+            dataclass_.__name__,
+            pre_processed_data,
+        )
         return self.transform_to_dataclass(pre_processed_data, dataclass_)

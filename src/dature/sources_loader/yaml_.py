@@ -6,6 +6,7 @@ from typing import cast
 from adaptix import loader
 from adaptix.provider import Provider
 from ruamel.yaml import YAML
+from ruamel.yaml.docinfo import Version
 
 from dature.sources_loader.base import ILoader
 from dature.sources_loader.loaders import (
@@ -20,7 +21,7 @@ from dature.types import JSONValue
 
 class BaseYamlLoader(ILoader, abc.ABC):
     @abc.abstractmethod
-    def _yaml_version(self) -> tuple[int, int]: ...
+    def _yaml_version(self) -> Version: ...
 
     def _load(self, path: Path) -> JSONValue:
         yaml = YAML(typ="safe")
@@ -30,8 +31,8 @@ class BaseYamlLoader(ILoader, abc.ABC):
 
 
 class Yaml11Loader(BaseYamlLoader):
-    def _yaml_version(self) -> tuple[int, int]:
-        return (1, 1)
+    def _yaml_version(self) -> Version:
+        return Version(1, 1)
 
     def _additional_loaders(self) -> list[Provider]:
         return [
@@ -43,8 +44,8 @@ class Yaml11Loader(BaseYamlLoader):
 
 
 class Yaml12Loader(BaseYamlLoader):
-    def _yaml_version(self) -> tuple[int, int]:
-        return (1, 2)
+    def _yaml_version(self) -> Version:
+        return Version(1, 2)
 
     def _additional_loaders(self) -> list[Provider]:
         return [

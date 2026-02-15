@@ -241,6 +241,85 @@ class Config:
 
 Nested dicts are merged recursively. Lists and scalars are replaced entirely according to the strategy.
 
+## Load Report
+
+Pass `debug=True` to `load()` to collect a `LoadReport` with detailed information about which source provided each field value. This works for both single-source and multi-source (merge) loads.
+
+### Programmatic access
+
+```python
+from dature import load, get_load_report, LoadMetadata, MergeMetadata
+
+config = load(
+    MergeMetadata(
+        sources=(
+            LoadMetadata(file_="defaults.yaml"),
+            LoadMetadata(file_="overrides.json"),
+        ),
+    ),
+    Config,
+    debug=True,
+)
+
+report = get_load_report(config)
+
+# Which sources were loaded
+for source in report.sources:
+    print(f"Source {source.index}: {source.loader_type} from {source.file_path}")
+    print(f"  Raw data: {source.raw_data}")
+
+# Which source won for each field
+for origin in report.field_origins:
+    print(f"{origin.key} = {origin.value!r}  <-- source {origin.source_index} ({origin.source_file})")
+
+# The final merged dict before dataclass conversion
+print(report.merged_data)
+```
+
+Without `debug=True`, `get_load_report` returns `None` and emits a warning.
+
+### Debug logging
+
+All loading steps are logged at `DEBUG` level under the `"dature"` logger regardless of the `debug` flag:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+config = load(LoadMetadata(file_="config.json"), Config)
+```
+
+Example output for a two-source merge:
+
+```
+[Config] Source 0 loaded: loader=json, file=defaults.json, keys=['host', 'port']
+[Config] Source 0 raw data: {'host': 'localhost', 'port': 3000}
+[Config] Source 1 loaded: loader=json, file=overrides.json, keys=['port']
+[Config] Source 1 raw data: {'port': 8080}
+[Config] Merge step 0 (strategy=last_wins): added=['host', 'port'], overwritten=[]
+[Config] State after step 0: {'host': 'localhost', 'port': 3000}
+[Config] Merge step 1 (strategy=last_wins): added=[], overwritten=['port']
+[Config] State after step 1: {'host': 'localhost', 'port': 8080}
+[Config] Merged result (strategy=last_wins, 2 sources): {'host': 'localhost', 'port': 8080}
+[Config] Field 'host' = 'localhost'  <-- source 0 (defaults.json)
+[Config] Field 'port' = 8080  <-- source 1 (overrides.json)
+```
+
+### Report on error
+
+If loading fails with `DatureConfigError` and `debug=True` was passed, the report is attached to the dataclass type so you can inspect what was loaded before the failure:
+
+```python
+from dature.errors import DatureConfigError
+
+try:
+    config = load(MergeMetadata(sources=(...,)), Config, debug=True)
+except DatureConfigError:
+    report = get_load_report(Config)
+    # report.sources contains raw data from each source
+    # report.merged_data contains the merged dict that failed to convert
+```
+
 ## Validators
 
 Validators are declared using `typing.Annotated`:

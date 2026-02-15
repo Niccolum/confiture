@@ -47,10 +47,7 @@ class ErrorContext:
 
 
 def _describe_error(exc: BaseException) -> str:
-    if isinstance(exc, ValidationLoadError):
-        return str(exc.msg)
-
-    if isinstance(exc, ValueLoadError):
+    if isinstance(exc, (ValidationLoadError, ValueLoadError)):
         return str(exc.msg)
 
     if isinstance(exc, TypeLoadError):
@@ -105,7 +102,7 @@ def extract_field_errors(exc: BaseException) -> list[FieldErrorInfo]:
     return result
 
 
-def _read_file_content(file_path: Path | None) -> str | None:
+def read_file_content(file_path: Path | None) -> str | None:
     if file_path is None:
         return None
 
@@ -133,7 +130,7 @@ def _build_search_path(field_path: list[str], prefix: str | None) -> list[str]:
     return prefix_parts + field_path
 
 
-def _find_env_line(content: str, var_name: str) -> tuple[int | None, str | None]:
+def _find_env_line(content: str, var_name: str) -> SourceLocation:
     for i, line in enumerate(content.splitlines(), 1):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -142,8 +139,30 @@ def _find_env_line(content: str, var_name: str) -> tuple[int | None, str | None]
             continue
         key = stripped.split("=", 1)[0].strip()
         if key == var_name:
-            return i, stripped
-    return None, None
+            return SourceLocation(
+                source_type="envfile",
+                file_path=None,
+                line_number=i,
+                line_content=stripped,
+                env_var_name=var_name,
+            )
+    return SourceLocation(
+        source_type="envfile",
+        file_path=None,
+        line_number=None,
+        line_content=None,
+        env_var_name=var_name,
+    )
+
+
+def _empty_file_location(loader_type: str, file_path: Path | None) -> SourceLocation:
+    return SourceLocation(
+        source_type=loader_type,
+        file_path=file_path,
+        line_number=None,
+        line_content=None,
+        env_var_name=None,
+    )
 
 
 def _resolve_file_location(
@@ -153,25 +172,27 @@ def _resolve_file_location(
     file_content: str | None,
     prefix: str | None,
 ) -> SourceLocation:
-    line_number = None
-    line_content = None
+    if file_content is None or not field_path:
+        return _empty_file_location(loader_type, file_path)
 
-    if file_content is not None and field_path:
-        finder_class = _PATH_FINDER_MAP.get(loader_type)
-        if finder_class is not None:
-            search_path = _build_search_path(field_path, prefix)
-            finder = finder_class(file_content)
-            found_line = finder.find_line(search_path)
-            if found_line != -1:
-                line_number = found_line
-                lines = file_content.splitlines()
-                if 0 < line_number <= len(lines):
-                    line_content = lines[line_number - 1].strip()
+    finder_class = _PATH_FINDER_MAP.get(loader_type)
+    if finder_class is None:
+        return _empty_file_location(loader_type, file_path)
+
+    search_path = _build_search_path(field_path, prefix)
+    found_line = finder_class(file_content).find_line(search_path)
+    if found_line == -1:
+        return _empty_file_location(loader_type, file_path)
+
+    lines = file_content.splitlines()
+    line_content = None
+    if 0 < found_line <= len(lines):
+        line_content = lines[found_line - 1].strip()
 
     return SourceLocation(
         source_type=loader_type,
         file_path=file_path,
-        line_number=line_number,
+        line_number=found_line,
         line_content=line_content,
         env_var_name=None,
     )
@@ -194,15 +215,20 @@ def resolve_source_location(
 
     if ctx.loader_type == "envfile":
         env_var_name = _build_env_var_name(field_path, ctx.prefix, ctx.split_symbols)
-        line_number = None
-        line_content = None
         if file_content is not None:
-            line_number, line_content = _find_env_line(file_content, env_var_name)
+            location = _find_env_line(file_content, env_var_name)
+            return SourceLocation(
+                source_type="envfile",
+                file_path=ctx.file_path,
+                line_number=location.line_number,
+                line_content=location.line_content,
+                env_var_name=env_var_name,
+            )
         return SourceLocation(
             source_type="envfile",
             file_path=ctx.file_path,
-            line_number=line_number,
-            line_content=line_content,
+            line_number=None,
+            line_content=None,
             env_var_name=env_var_name,
         )
 
@@ -217,7 +243,7 @@ def handle_load_errors[T](
     try:
         return func()
     except (AggregateLoadError, LoadError) as exc:
-        file_content = _read_file_content(ctx.file_path)
+        file_content = read_file_content(ctx.file_path)
         field_errors = extract_field_errors(exc)
         enriched: list[FieldError] = []
         for fe in field_errors:

@@ -1,115 +1,28 @@
+import logging
 from collections.abc import Callable
 from dataclasses import asdict, fields, is_dataclass
 from pathlib import Path
 from typing import cast
 
-from dature.error_formatter import ErrorContext, _read_file_content, handle_load_errors, resolve_source_location
-from dature.errors import FieldErrorInfo, MergeConflictError, SourceLocation
+from dature.deep_merge import deep_merge, deep_merge_last_wins, raise_on_conflict
+from dature.error_formatter import ErrorContext, handle_load_errors, read_file_content
+from dature.errors import DatureConfigError
+from dature.load_report import (
+    FieldOrigin,
+    LoadReport,
+    SourceEntry,
+    attach_load_report,
+    compute_field_origins,
+    get_load_report,
+)
 from dature.metadata import LoadMetadata, MergeMetadata, MergeStrategy
-from dature.patcher import _ensure_retort, _merge_fields
+from dature.patcher import ensure_retort, merge_fields
 from dature.sources_loader.base import ILoader
 from dature.sources_loader.resolver import get_loader_type, resolve_loader
 from dature.types import JSONValue
 from dature.validators.protocols import DataclassInstance
 
-_MIN_CONFLICT_SOURCES = 2
-
-
-def _deep_merge_last_wins(base: JSONValue, override: JSONValue) -> JSONValue:
-    if isinstance(base, dict) and isinstance(override, dict):
-        result = dict(base)
-        for key, value in override.items():
-            if key in result:
-                result[key] = _deep_merge_last_wins(result[key], value)
-            else:
-                result[key] = value
-        return result
-    return override
-
-
-def _deep_merge_first_wins(base: JSONValue, override: JSONValue) -> JSONValue:
-    if isinstance(base, dict) and isinstance(override, dict):
-        result = dict(base)
-        for key, value in override.items():
-            if key in result:
-                result[key] = _deep_merge_first_wins(result[key], value)
-            else:
-                result[key] = value
-        return result
-    return base
-
-
-def _collect_conflicts(
-    dicts: list[JSONValue],
-    source_contexts: list[tuple[ErrorContext, str | None]],
-    path: list[str],
-    conflicts: list[tuple[list[str], list[tuple[int, JSONValue]]]],
-) -> None:
-    key_sources: dict[str, list[tuple[int, JSONValue]]] = {}
-
-    for i, d in enumerate(dicts):
-        if not isinstance(d, dict):
-            continue
-        for key, value in d.items():
-            if key not in key_sources:
-                key_sources[key] = []
-            key_sources[key].append((i, value))
-
-    for key, sources in key_sources.items():
-        if len(sources) < _MIN_CONFLICT_SOURCES:
-            continue
-
-        nested_dicts = [v for _, v in sources if isinstance(v, dict)]
-        if len(nested_dicts) == len(sources):
-            _collect_conflicts(
-                [v for _, v in sources],
-                [source_contexts[i] for i, _ in sources],
-                [*path, key],
-                conflicts,
-            )
-        else:
-            conflicts.append(([*path, key], sources))
-
-
-def _raise_on_conflict(
-    dicts: list[JSONValue],
-    source_ctxs: list[tuple[ErrorContext, str | None]],
-    dataclass_name: str,
-) -> None:
-    conflicts: list[tuple[list[str], list[tuple[int, JSONValue]]]] = []
-    _collect_conflicts(dicts, source_ctxs, [], conflicts)
-
-    if not conflicts:
-        return
-
-    conflict_errors: list[tuple[FieldErrorInfo, list[SourceLocation]]] = []
-    for field_path, sources in conflicts:
-        info = FieldErrorInfo(
-            field_path=field_path,
-            message="Conflicting values in multiple sources",
-            input_value=None,
-        )
-        locations: list[SourceLocation] = []
-        for source_idx, _ in sources:
-            ctx, file_content = source_ctxs[source_idx]
-            loc = resolve_source_location(field_path, ctx, file_content)
-            locations.append(loc)
-        conflict_errors.append((info, locations))
-
-    raise MergeConflictError(conflict_errors, dataclass_name)
-
-
-def deep_merge(
-    base: JSONValue,
-    override: JSONValue,
-    strategy: MergeStrategy,
-) -> JSONValue:
-    if strategy == MergeStrategy.LAST_WINS:
-        return _deep_merge_last_wins(base, override)
-    if strategy == MergeStrategy.FIRST_WINS:
-        return _deep_merge_first_wins(base, override)
-    msg = "Use merge_sources for RAISE_ON_CONFLICT strategy"
-    raise ValueError(msg)
+logger = logging.getLogger("dature")
 
 
 def _build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContext:
@@ -125,6 +38,7 @@ def _build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContex
 
 
 def _resolve_loader_for_source(
+    *,
     loaders: tuple[ILoader, ...] | None,
     index: int,
     source_meta: LoadMetadata,
@@ -134,17 +48,107 @@ def _resolve_loader_for_source(
     return resolve_loader(source_meta)
 
 
+def _log_merge_step(
+    *,
+    dataclass_name: str,
+    step_idx: int,
+    strategy: MergeStrategy,
+    before: JSONValue,
+    source_data: JSONValue,
+    after: JSONValue,
+) -> None:
+    if isinstance(before, dict) and isinstance(source_data, dict) and isinstance(after, dict):
+        added_keys = set(source_data.keys()) - set(before.keys())
+        overwritten_keys = set(source_data.keys()) & set(before.keys())
+        logger.debug(
+            "[%s] Merge step %d (strategy=%s): added=%s, overwritten=%s",
+            dataclass_name,
+            step_idx,
+            strategy.value,
+            sorted(added_keys),
+            sorted(overwritten_keys),
+        )
+    logger.debug(
+        "[%s] State after step %d: %s",
+        dataclass_name,
+        step_idx,
+        after,
+    )
+
+
+def _log_field_origins(
+    *,
+    dataclass_name: str,
+    field_origins: tuple[FieldOrigin, ...],
+) -> None:
+    for origin in field_origins:
+        logger.debug(
+            "[%s] Field '%s' = %r  <-- source %d (%s)",
+            dataclass_name,
+            origin.key,
+            origin.value,
+            origin.source_index,
+            origin.source_file or "<env>",
+        )
+
+
+def _build_merge_report(
+    *,
+    dataclass_name: str,
+    strategy: MergeStrategy,
+    source_entries: tuple[SourceEntry, ...],
+    field_origins: tuple[FieldOrigin, ...],
+    merged_data: JSONValue,
+) -> LoadReport:
+    return LoadReport(
+        dataclass_name=dataclass_name,
+        strategy=strategy,
+        sources=source_entries,
+        field_origins=field_origins,
+        merged_data=merged_data,
+    )
+
+
+def _merge_raw_dicts(
+    *,
+    raw_dicts: list[JSONValue],
+    strategy: MergeStrategy,
+    dataclass_name: str,
+) -> JSONValue:
+    merged: JSONValue = {}
+    for step_idx, raw in enumerate(raw_dicts):
+        before = merged
+        if strategy == MergeStrategy.RAISE_ON_CONFLICT:
+            merged = deep_merge_last_wins(merged, raw)
+        else:
+            merged = deep_merge(merged, raw, strategy=strategy)
+
+        _log_merge_step(
+            dataclass_name=dataclass_name,
+            step_idx=step_idx,
+            strategy=strategy,
+            before=before,
+            source_data=raw,
+            after=merged,
+        )
+
+    return merged
+
+
 def _load_and_merge[T](
+    *,
     merge_meta: MergeMetadata,
     dataclass_: type[T],
     loaders: tuple[ILoader, ...] | None = None,
-) -> tuple[T, ErrorContext]:
+    debug: bool = False,
+) -> T:
     raw_dicts: list[JSONValue] = []
     source_ctxs: list[tuple[ErrorContext, str | None]] = []
+    source_entries: list[SourceEntry] = []
     last_loader: ILoader | None = None
 
     for i, source_meta in enumerate(merge_meta.sources):
-        loader_instance = _resolve_loader_for_source(loaders, i, source_meta)
+        loader_instance = _resolve_loader_for_source(loaders=loaders, index=i, source_meta=source_meta)
         file_path = Path(source_meta.file_) if source_meta.file_ else Path()
         error_ctx = _build_error_ctx(source_meta, dataclass_.__name__)
 
@@ -157,7 +161,33 @@ def _load_and_merge[T](
         )
         raw_dicts.append(raw)
 
-        file_content = _read_file_content(error_ctx.file_path)
+        loader_type = get_loader_type(source_meta)
+
+        logger.debug(
+            "[%s] Source %d loaded: loader=%s, file=%s, keys=%s",
+            dataclass_.__name__,
+            i,
+            loader_type,
+            source_meta.file_ or "<env>",
+            sorted(raw.keys()) if isinstance(raw, dict) else "<non-dict>",
+        )
+        logger.debug(
+            "[%s] Source %d raw data: %s",
+            dataclass_.__name__,
+            i,
+            raw,
+        )
+
+        source_entries.append(
+            SourceEntry(
+                index=i,
+                file_path=source_meta.file_,
+                loader_type=loader_type,
+                raw_data=raw,
+            ),
+        )
+
+        file_content = read_file_content(error_ctx.file_path)
         source_ctxs.append((error_ctx, file_content))
         last_loader = loader_instance
 
@@ -166,29 +196,72 @@ def _load_and_merge[T](
         raise ValueError(msg)
 
     if merge_meta.strategy == MergeStrategy.RAISE_ON_CONFLICT:
-        _raise_on_conflict(raw_dicts, source_ctxs, dataclass_.__name__)
+        raise_on_conflict(raw_dicts, source_ctxs, dataclass_.__name__)
 
-    merged: JSONValue = {}
-    for raw in raw_dicts:
-        if merge_meta.strategy == MergeStrategy.RAISE_ON_CONFLICT:
-            merged = _deep_merge_last_wins(merged, raw)
-        else:
-            merged = deep_merge(merged, raw, merge_meta.strategy)
-
-    last_error_ctx = source_ctxs[-1][0]
-    result = handle_load_errors(
-        func=lambda: last_loader.transform_to_dataclass(merged, dataclass_),
-        ctx=last_error_ctx,
+    merged = _merge_raw_dicts(
+        raw_dicts=raw_dicts,
+        strategy=merge_meta.strategy,
+        dataclass_name=dataclass_.__name__,
     )
 
-    return result, last_error_ctx
+    logger.debug(
+        "[%s] Merged result (strategy=%s, %d sources): %s",
+        dataclass_.__name__,
+        merge_meta.strategy.value,
+        len(raw_dicts),
+        merged,
+    )
+
+    frozen_entries = tuple(source_entries)
+    field_origins = compute_field_origins(
+        raw_dicts=raw_dicts,
+        source_entries=frozen_entries,
+        strategy=merge_meta.strategy,
+    )
+
+    _log_field_origins(
+        dataclass_name=dataclass_.__name__,
+        field_origins=field_origins,
+    )
+
+    report: LoadReport | None = None
+    if debug:
+        report = _build_merge_report(
+            dataclass_name=dataclass_.__name__,
+            strategy=merge_meta.strategy,
+            source_entries=frozen_entries,
+            field_origins=field_origins,
+            merged_data=merged,
+        )
+
+    last_error_ctx = source_ctxs[-1][0]
+    try:
+        result = handle_load_errors(
+            func=lambda: last_loader.transform_to_dataclass(merged, dataclass_),
+            ctx=last_error_ctx,
+        )
+    except DatureConfigError:
+        if report is not None:
+            attach_load_report(dataclass_, report)
+        raise
+
+    if report is not None:
+        attach_load_report(result, report)
+
+    return result
 
 
 def merge_load_as_function[T](
     merge_meta: MergeMetadata,
     dataclass_: type[T],
+    *,
+    debug: bool = False,
 ) -> T:
-    result, last_error_ctx = _load_and_merge(merge_meta, dataclass_)
+    result = _load_and_merge(
+        merge_meta=merge_meta,
+        dataclass_=dataclass_,
+        debug=debug,
+    )
 
     last_meta = merge_meta.sources[-1]
     last_loader = resolve_loader(last_meta)
@@ -196,10 +269,18 @@ def merge_load_as_function[T](
     validation_loader = validating_retort.get_loader(dataclass_)
     result_dict = asdict(cast("DataclassInstance", result))
 
-    handle_load_errors(
-        func=lambda: validation_loader(result_dict),
-        ctx=last_error_ctx,
-    )
+    last_error_ctx = _build_error_ctx(last_meta, dataclass_.__name__)
+    try:
+        handle_load_errors(
+            func=lambda: validation_loader(result_dict),
+            ctx=last_error_ctx,
+        )
+    except DatureConfigError:
+        if debug:
+            report = get_load_report(result)
+            if report is not None:
+                attach_load_report(dataclass_, report)
+        raise
 
     return result
 
@@ -211,12 +292,14 @@ class _MergePatchContext:
         merge_meta: MergeMetadata,
         cls: type[DataclassInstance],
         cache: bool,
+        debug: bool,
     ) -> None:
-        self.loaders = self._prepare_loaders(merge_meta, cls)
+        self.loaders = self._prepare_loaders(merge_meta=merge_meta, cls=cls)
 
         self.merge_meta = merge_meta
         self.cls = cls
         self.cache = cache
+        self.debug = debug
         self.cached_data: DataclassInstance | None = None
         self.field_list = fields(cls)
         self.original_init = cls.__init__
@@ -233,13 +316,14 @@ class _MergePatchContext:
 
     @staticmethod
     def _prepare_loaders(
+        *,
         merge_meta: MergeMetadata,
         cls: type,
     ) -> tuple[ILoader, ...]:
         loaders: list[ILoader] = []
         for source_meta in merge_meta.sources:
             loader_instance = resolve_loader(source_meta)
-            _ensure_retort(loader_instance, cls)
+            ensure_retort(loader_instance, cls)
             loaders.append(loader_instance)
         return tuple(loaders)
 
@@ -255,18 +339,24 @@ def _make_merge_new_init(ctx: _MergePatchContext) -> Callable[..., None]:
         else:
             ctx.loading = True
             try:
-                loaded_data, _ = _load_and_merge(
-                    ctx.merge_meta,
-                    ctx.cls,
+                loaded_data = _load_and_merge(
+                    merge_meta=ctx.merge_meta,
+                    dataclass_=ctx.cls,
                     loaders=ctx.loaders,
+                    debug=ctx.debug,
                 )
             finally:
                 ctx.loading = False
             if ctx.cache:
                 ctx.cached_data = loaded_data
 
-        complete_kwargs = _merge_fields(loaded_data, ctx.field_list, args, kwargs)
+        complete_kwargs = merge_fields(loaded_data, ctx.field_list, args, kwargs)
         ctx.original_init(self, *args, **complete_kwargs)
+
+        if ctx.debug:
+            report = get_load_report(loaded_data)
+            if report is not None:
+                attach_load_report(self, report)
 
         if ctx.original_post_init is None:
             self.__post_init__()  # type: ignore[attr-defined]
@@ -302,6 +392,7 @@ def merge_make_decorator(
     merge_meta: MergeMetadata,
     *,
     cache: bool = True,
+    debug: bool = False,
 ) -> Callable[[type[DataclassInstance]], type[DataclassInstance]]:
     def decorator(cls: type[DataclassInstance]) -> type[DataclassInstance]:
         if not is_dataclass(cls):
@@ -312,6 +403,7 @@ def merge_make_decorator(
             merge_meta=merge_meta,
             cls=cls,
             cache=cache,
+            debug=debug,
         )
         cls.__init__ = _make_merge_new_init(ctx)  # type: ignore[method-assign]
         cls.__post_init__ = _make_merge_new_post_init(ctx)  # type: ignore[attr-defined]

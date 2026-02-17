@@ -31,11 +31,15 @@ def build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContext
     )
 
 
-def get_allowed_fields(*, skip_value: bool | tuple[FieldPath, ...]) -> set[str] | None:
+def get_allowed_fields(
+    *,
+    skip_value: bool | tuple[FieldPath, ...],
+    dataclass_: type[DataclassInstance] | None = None,
+) -> set[str] | None:
     if skip_value is True:
         return None
     if isinstance(skip_value, tuple):
-        return {extract_field_path(fp) for fp in skip_value}
+        return {extract_field_path(fp, dataclass_) for fp in skip_value}
     return None
 
 
@@ -51,7 +55,7 @@ def apply_skip_invalid(
     if not skip_if_invalid:
         return FilterResult(cleaned_dict=raw, skipped_paths=[])
 
-    allowed_fields = get_allowed_fields(skip_value=skip_if_invalid)
+    allowed_fields = get_allowed_fields(skip_value=skip_if_invalid, dataclass_=dataclass_)
 
     if probe_retort is None:
         probe_retort = loader_instance.create_probe_retort()

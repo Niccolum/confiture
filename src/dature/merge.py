@@ -135,7 +135,7 @@ def _load_and_merge[T: DataclassInstance](
 
     field_merge_map: dict[str, FieldMergeStrategy] | None = None
     if merge_meta.field_merges:
-        field_merge_map = build_field_merge_map(merge_meta.field_merges)
+        field_merge_map = build_field_merge_map(merge_meta.field_merges, dataclass_)
 
     if merge_meta.strategy == MergeStrategy.RAISE_ON_CONFLICT:
         raise_on_conflict(loaded.raw_dicts, loaded.source_ctxs, dataclass_.__name__, field_merge_map=field_merge_map)

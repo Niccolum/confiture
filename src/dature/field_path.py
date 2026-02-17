@@ -1,6 +1,8 @@
 from dataclasses import dataclass, fields, is_dataclass
 from typing import TypeVar, get_type_hints, overload
 
+from dature.validators.protocols import DataclassInstance
+
 T = TypeVar("T")
 
 
@@ -49,6 +51,17 @@ class FieldPath:
             msg = "FieldPath must contain at least one field name"
             raise ValueError(msg)
         return ".".join(self.parts)
+
+
+def validate_field_path_owner(field_path: FieldPath, dataclass_: type[DataclassInstance]) -> None:
+    if isinstance(field_path.owner, str):
+        if field_path.owner != dataclass_.__name__:
+            msg = f"FieldPath owner '{field_path.owner}' does not match target dataclass '{dataclass_.__name__}'"
+            raise TypeError(msg)
+        return
+    if field_path.owner is not dataclass_:
+        msg = f"FieldPath owner '{field_path.owner.__name__}' does not match target dataclass '{dataclass_.__name__}'"
+        raise TypeError(msg)
 
 
 class _FieldPathFactory:

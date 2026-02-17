@@ -75,3 +75,36 @@ class TestBuildFieldMergeMap:
         result = build_field_merge_map(rules)
 
         assert result == {"database.host": FieldMergeStrategy.LAST_WINS}
+
+    def test_validates_owner_mismatch(self):
+        @dataclass
+        class Config:
+            host: str
+
+        @dataclass
+        class Other:
+            host: str
+
+        rules = (MergeRule(F[Other].host, FieldMergeStrategy.FIRST_WINS),)
+
+        with pytest.raises(TypeError) as exc_info:
+            build_field_merge_map(rules, Config)
+        assert str(exc_info.value) == "FieldPath owner 'Other' does not match target dataclass 'Config'"
+
+
+class TestExtractFieldPathWithOwnerValidation:
+    def test_validates_owner_mismatch(self):
+        @dataclass
+        class Config:
+            host: str
+
+        with pytest.raises(TypeError) as exc_info:
+            extract_field_path(F["Other"].host, Config)
+        assert str(exc_info.value) == "FieldPath owner 'Other' does not match target dataclass 'Config'"
+
+    def test_passes_with_correct_string_owner(self):
+        @dataclass
+        class Config:
+            host: str
+
+        assert extract_field_path(F["Config"].host, Config) == "host"

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from dature.field_path import F, FieldPath
+from dature.field_path import F, FieldPath, validate_field_path_owner
 
 
 @dataclass
@@ -60,3 +60,21 @@ class TestFieldPath:
     def test_string_owner_skips_validation(self):
         fp = F["Whatever"].anything.deep.path
         assert fp.as_path() == "anything.deep.path"
+
+
+class TestValidateFieldPathOwner:
+    def test_string_owner_matches(self):
+        validate_field_path_owner(F["_Cfg"].host, _Cfg)
+
+    def test_type_owner_matches(self):
+        validate_field_path_owner(F[_Cfg].host, _Cfg)
+
+    def test_string_owner_mismatch(self):
+        with pytest.raises(TypeError) as exc_info:
+            validate_field_path_owner(F["Other"].host, _Cfg)
+        assert str(exc_info.value) == "FieldPath owner 'Other' does not match target dataclass '_Cfg'"
+
+    def test_type_owner_mismatch(self):
+        with pytest.raises(TypeError) as exc_info:
+            validate_field_path_owner(F[_Database].uri, _Cfg)
+        assert str(exc_info.value) == "FieldPath owner '_Database' does not match target dataclass '_Cfg'"

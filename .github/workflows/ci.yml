@@ -34,12 +34,72 @@ jobs:
       - name: Run mypy
         run: uv run mypy src
 
+  get-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.filter.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install filtering tool
+        run: pip install packaging
+
+      - id: filter
+        shell: python
+        run: |
+          import json, os, re, urllib.request, tomllib
+          from packaging.specifiers import SpecifierSet
+          from packaging.version import Version
+
+          # 1. Получаем данные из PyPI для adaptix
+          import ssl
+          context = ssl._create_unverified_context()
+          with urllib.request.urlopen("https://pypi.org/pypi/adaptix/json", context=context) as response:
+              data = json.loads(response.read())
+
+          # 2. Парсим ограничение из pyproject.toml
+          with open("pyproject.toml", "rb") as f:
+              pyproject = tomllib.load(f)
+              deps = pyproject.get("project", {}).get("dependencies", [])
+              # Ищем строку 'adaptix>=3.0.0b11' и достаем саму спецификацию
+              raw_spec = next((d for d in deps if d.startswith("adaptix")), "adaptix>=0")
+              spec_str = raw_spec.replace("adaptix", "").strip()
+
+          spec = SpecifierSet(spec_str)
+
+          # 3. Собираем все не-yanked версии 3.x
+          all_versions = [
+              v for v, info in data["releases"].items() 
+              if v.startswith("3.") and not any(r.get("yanked") for r in info)
+          ]
+
+          # 4. Сортируем и группируем (как раньше: оставляем только последний патч/бету в ветке)
+          all_versions.sort(key=Version)
+          grouped = {}
+          for v in all_versions:
+              # Группируем по префиксу (отрезаем последнюю часть: .1 или b11)
+              prefix = re.sub(r"(?<=[a-z])[0-9]+$|(?<=\.)[0-9]+$", "", v)
+              grouped[prefix] = v
+
+          # 5. Фильтруем по pyproject.toml
+          final_versions = [v for v in grouped.values() if Version(v) in spec]
+
+          # Записываем результат для матрицы
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"versions={json.dumps(final_versions)}\n")
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: ['3.12', '3.13', '3.14']
         os: [ubuntu-latest, windows-latest, macos-latest]
+        adaptix-version: ${{ fromJson(needs.get-versions.outputs.versions) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +114,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras --dev --upgrade-package adaptix==${{ matrix.adaptix-version }}
 
       - name: Run tests
         run: uv run pytest -v

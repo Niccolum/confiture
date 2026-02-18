@@ -34,7 +34,7 @@ jobs:
       - name: Run mypy
         run: uv run mypy src
 
-  get-versions:
+  get-adaptix-versions:
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.filter.outputs.versions }}
@@ -57,9 +57,7 @@ jobs:
           from packaging.version import Version
 
           # 1. Получаем данные из PyPI для adaptix
-          import ssl
-          context = ssl._create_unverified_context()
-          with urllib.request.urlopen("https://pypi.org/pypi/adaptix/json", context=context) as response:
+          with urllib.request.urlopen("https://pypi.org/pypi/adaptix/json") as response:
               data = json.loads(response.read())
 
           # 2. Парсим ограничение из pyproject.toml
@@ -94,12 +92,13 @@ jobs:
               f.write(f"versions={json.dumps(final_versions)}\n")
 
   test:
+    needs: [get-adaptix-versions]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: ['3.12', '3.13', '3.14']
         os: [ubuntu-latest, windows-latest, macos-latest]
-        adaptix-version: ${{ fromJson(needs.get-versions.outputs.versions) }}
+        adaptix-version: ${{ fromJson(needs.get-adaptix-versions.outputs.versions) }}
     steps:
       - uses: actions/checkout@v4
 

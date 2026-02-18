@@ -141,5 +141,30 @@ nested_optional:
 # RANGE (as list)
 range_values: [0, 2, 4, 6, 8]
 
+# NESTED DATACLASSES IN COLLECTIONS
+nested_dc_single:
+  city: Moscow
+  zip_code: "101000"
+
+nested_dc_list:
+  - name: urgent
+    priority: 1
+  - name: low
+    priority: 5
+
+nested_dc_dict:
+  home:
+    city: Berlin
+    zip_code: "10115"
+  work:
+    city: Paris
+    zip_code: "75001"
+
+nested_dc_tuple:
+  - name: bug
+    priority: 2
+  - name: feature
+    priority: 3
+
 # FROZENSET (as list, adaptix will convert)
 frozenset_value: [1, 2, 3, 4, 5]

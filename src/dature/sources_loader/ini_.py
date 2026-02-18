@@ -8,18 +8,13 @@ from adaptix.provider import Provider
 
 from dature.sources_loader.base import ILoader
 from dature.sources_loader.loaders import (
-    bool_from_string,
+    bool_loader,
     bytearray_from_json_string,
     date_from_string,
     datetime_from_string,
-    dict_from_json_string,
-    frozenset_from_json_string,
-    list_from_json_string,
     none_from_empty_string,
     optional_from_empty_string,
-    set_from_json_string,
     time_from_string,
-    tuple_from_json_string,
 )
 from dature.types import JSONValue
 
@@ -33,13 +28,14 @@ class IniLoader(ILoader):
             loader(bytearray, bytearray_from_json_string),
             loader(type(None), none_from_empty_string),
             loader(str | None, optional_from_empty_string),
-            loader(bool, bool_from_string),
-            loader(dict, dict_from_json_string),
-            loader(list, list_from_json_string),
-            loader(tuple, tuple_from_json_string),
-            loader(set, set_from_json_string),
-            loader(frozenset, frozenset_from_json_string),
+            loader(bool, bool_loader),
         ]
+
+    def _pre_processing(self, data: JSONValue) -> JSONValue:
+        prefixed = self._apply_prefix(data)
+        if self._enable_expand_env_vars:
+            prefixed = self._expand_env_vars(prefixed)
+        return self._parse_string_values(prefixed)
 
     def _load(self, path: Path) -> JSONValue:
         config = configparser.ConfigParser(interpolation=None)

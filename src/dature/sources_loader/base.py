@@ -1,4 +1,5 @@
 import abc
+import json
 import logging
 import os
 from dataclasses import fields, is_dataclass
@@ -132,6 +133,31 @@ class ILoader(abc.ABC):
             elif origin is not None:
                 queue.extend(get_args(current))
 
+        return result
+
+    @staticmethod
+    def _infer_type(value: str) -> JSONValue:
+        if value == "":
+            return value
+
+        try:
+            return cast("JSONValue", json.loads(value))
+        except (json.JSONDecodeError, ValueError):
+            return value
+
+    @classmethod
+    def _parse_string_values(cls, data: JSONValue, *, infer_scalars: bool = False) -> JSONValue:
+        if not isinstance(data, dict):
+            return data
+
+        result: dict[str, JSONValue] = {}
+        for key, value in data.items():
+            if isinstance(value, dict):
+                result[key] = cls._parse_string_values(value, infer_scalars=True)
+            elif isinstance(value, str) and (infer_scalars or value.startswith(("[", "{"))):
+                result[key] = cls._infer_type(value)
+            else:
+                result[key] = value
         return result
 
     def _base_recipe(self) -> list[Provider]:

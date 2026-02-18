@@ -38,6 +38,10 @@ set_integers = [1, 2, 3, 4, 5]
 set_strings = ["apple", "banana", "cherry"]
 frozenset_value = [1, 2, 3, 4, 5]
 
+# NESTED DATACLASSES IN COLLECTIONS
+nested_dc_list = [{name = "urgent", priority = 1}, {name = "low", priority = 5}]
+nested_dc_tuple = [{name = "bug", priority = 2}, {name = "feature", priority = 3}]
+
 # BINARY/ENCODING
 bytes_value = "binary data"
 bytearray_value = "binary"
@@ -129,3 +133,17 @@ email = "alice@example.com"
 [[nested_optional]]
 name = "Bob"
 email = ""
+
+# NESTED DATACLASS (single)
+[nested_dc_single]
+city = "Moscow"
+zip_code = "101000"
+
+# NESTED DATACLASS (dict of dataclasses)
+[nested_dc_dict.home]
+city = "Berlin"
+zip_code = "10115"
+
+[nested_dc_dict.work]
+city = "Paris"
+zip_code = "75001"

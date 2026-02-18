@@ -209,6 +209,14 @@ class TestEnvLoader:
             "APP_NESTED_OPTIONAL": '[{"name":"Alice","email":"alice@example.com"},{"name":"Bob","email":null}]',
             "APP_RANGE_VALUES": "[0,2,4,6,8]",
             "APP_FROZENSET_VALUE": "[1,2,3,4,5]",
+            # Nested dataclasses in collections
+            "APP_NESTED_DC_SINGLE__CITY": "Moscow",
+            "APP_NESTED_DC_SINGLE__ZIP_CODE": "101000",
+            "APP_NESTED_DC_LIST": '[{"name":"urgent","priority":1},{"name":"low","priority":5}]',
+            "APP_NESTED_DC_DICT": (
+                '{"home":{"city":"Berlin","zip_code":"10115"},"work":{"city":"Paris","zip_code":"75001"}}'
+            ),
+            "APP_NESTED_DC_TUPLE": '[{"name":"bug","priority":2},{"name":"feature","priority":3}]',
         }
         for key, value in env_vars.items():
             monkeypatch.setenv(key, value)

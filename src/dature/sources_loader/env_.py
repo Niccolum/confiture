@@ -9,18 +9,13 @@ from adaptix.provider import Provider
 from dature.protocols import ValidatorProtocol
 from dature.sources_loader.base import ILoader
 from dature.sources_loader.loaders import (
-    bool_from_string,
+    bool_loader,
     bytearray_from_json_string,
     date_from_string,
     datetime_from_string,
-    dict_from_env_nested,
-    frozenset_from_json_string,
-    list_from_json_string,
     none_from_empty_string,
     optional_from_empty_string,
-    set_from_json_string,
     time_from_string,
-    tuple_from_json_string,
 )
 from dature.types import DotSeparatedPath, FieldMapping, JSONValue, NameStyle
 
@@ -59,12 +54,7 @@ class EnvLoader(ILoader):
             loader(bytearray, bytearray_from_json_string),
             loader(type(None), none_from_empty_string),
             loader(str | None, optional_from_empty_string),
-            loader(bool, bool_from_string),
-            loader(dict, dict_from_env_nested),
-            loader(list, list_from_json_string),
-            loader(tuple, tuple_from_json_string),
-            loader(set, set_from_json_string),
-            loader(frozenset, frozenset_from_json_string),
+            loader(bool, bool_loader),
         ]
 
     def _load(self, _: Path) -> JSONValue:
@@ -78,8 +68,8 @@ class EnvLoader(ILoader):
             self._pre_processed_row(key=key, value=value, result=result)
 
         if self._enable_expand_env_vars:
-            return self._expand_env_vars(result)
-        return result
+            result = cast("dict[str, JSONValue]", self._expand_env_vars(result))
+        return self._parse_string_values(result)
 
     def _pre_processed_row(self, key: str, value: str, result: dict[str, JSONValue]) -> None:
         if self._prefix and not key.startswith(self._prefix):
@@ -116,5 +106,5 @@ class EnvFileLoader(EnvLoader):
 
     def _pre_processing(self, data: JSONValue) -> JSONValue:
         if self._enable_expand_env_vars:
-            return self._expand_env_vars(data)
-        return data
+            data = self._expand_env_vars(data)
+        return self._parse_string_values(data)

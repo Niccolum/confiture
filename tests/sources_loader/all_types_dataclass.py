@@ -23,6 +23,18 @@ from dature.types import URL, Base64UrlBytes, Base64UrlStr
 
 
 @dataclass
+class NestedAddress:
+    city: str
+    zip_code: str
+
+
+@dataclass
+class NestedTag:
+    name: str
+    priority: int
+
+
+@dataclass
 class AllPythonTypesCompact:
     """
     Comprehensive dataclass containing all Python basic types.
@@ -116,6 +128,12 @@ class AllPythonTypesCompact:
     nested_optional: list[dict[str, str | None]]
 
     range_values: list[int]
+
+    # Nested dataclasses in collections
+    nested_dc_single: NestedAddress
+    nested_dc_list: list[NestedTag]
+    nested_dc_dict: dict[str, NestedAddress]
+    nested_dc_tuple: tuple[NestedTag, NestedTag]
 
     frozenset_value: frozenset[int] | None = None
 
@@ -214,6 +232,14 @@ EXPECTED_ALL_TYPES = AllPythonTypesCompact(
         {"name": "Bob", "email": None},
     ],
     range_values=[0, 2, 4, 6, 8],
+    # Nested dataclasses in collections
+    nested_dc_single=NestedAddress(city="Moscow", zip_code="101000"),
+    nested_dc_list=[NestedTag(name="urgent", priority=1), NestedTag(name="low", priority=5)],
+    nested_dc_dict={
+        "home": NestedAddress(city="Berlin", zip_code="10115"),
+        "work": NestedAddress(city="Paris", zip_code="75001"),
+    },
+    nested_dc_tuple=(NestedTag(name="bug", priority=2), NestedTag(name="feature", priority=3)),
     frozenset_value=frozenset({1, 2, 3, 4, 5}),
 )
 

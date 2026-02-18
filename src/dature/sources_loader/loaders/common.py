@@ -1,6 +1,5 @@
 import json
 from datetime import date, datetime, time
-from typing import Any, cast
 
 # Expected number of time parts in HH:MM:SS format
 TIME_PARTS_WITH_SECONDS = 3
@@ -52,7 +51,7 @@ def optional_from_empty_string(value: str) -> str | None:
     return value
 
 
-def bool_from_string(value: str) -> bool:
+def _bool_from_string(value: str) -> bool:
     lower = value.lower().strip()
     if lower in ("true", "1", "yes", "on"):
         return True
@@ -60,6 +59,12 @@ def bool_from_string(value: str) -> bool:
         return False
     msg = f"Cannot convert {value!r} to bool"
     raise TypeError(msg)
+
+
+def bool_loader(value: str | bool) -> bool:  # noqa: FBT001
+    if isinstance(value, bool):
+        return value
+    return _bool_from_string(value)
 
 
 def bytearray_from_json_string(value: str) -> bytearray:
@@ -74,44 +79,3 @@ def bytearray_from_json_string(value: str) -> bytearray:
         return bytearray(items)
 
     return bytearray(value.encode("utf-8"))
-
-
-def list_from_json_string(value: str) -> list[Any]:
-    if value == "":
-        return []
-
-    return cast("list[Any]", json.loads(value))
-
-
-def tuple_from_json_string(value: str) -> tuple[Any, ...]:
-    if value == "":
-        return ()
-
-    parsed = json.loads(value)
-    if not isinstance(parsed, list):
-        msg = f"Expected list in JSON, got {type(parsed)}"
-        raise TypeError(msg)
-    result = [tuple(item) if isinstance(item, list) else item for item in parsed]
-    return tuple(result)
-
-
-def set_from_json_string(value: str) -> set[Any]:
-    if value == "":
-        return set()
-
-    parsed = json.loads(value)
-    if not isinstance(parsed, list):
-        msg = f"Expected list in JSON, got {type(parsed)}"
-        raise TypeError(msg)
-    return set(parsed)
-
-
-def frozenset_from_json_string(value: str) -> frozenset[Any]:
-    if value == "":
-        return frozenset()
-
-    parsed = json.loads(value)
-    if not isinstance(parsed, list):
-        msg = f"Expected list in JSON, got {type(parsed)}"
-        raise TypeError(msg)
-    return frozenset(parsed)

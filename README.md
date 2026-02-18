@@ -649,8 +649,11 @@ dature provides human-readable error messages with source location:
 Config loading errors (2)
 
   [database.host]  Missing required field
-   └── FILE 'config.json', line 3
+   └── FILE 'config.json', line 2-5
        "database": {
+         "host": "localhost",
+         "port": 5432
+       }
 
   [port]  Expected int, got str
    └── ENV 'APP_PORT'

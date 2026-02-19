@@ -307,6 +307,90 @@ config = load(
 # all other fields still raise MergeConflictError on conflict.
 ```
 
+### Field Groups
+
+Ensure that related fields are always overridden together. If a source changes some fields in a group but not others, `FieldGroupError` is raised:
+
+```python
+from dature import F, FieldGroup, LoadMetadata, MergeMetadata, load
+
+@dataclass
+class Config:
+    host: str
+    port: int
+    debug: bool
+
+config = load(
+    MergeMetadata(
+        sources=(
+            LoadMetadata(file_="defaults.yaml"),
+            LoadMetadata(file_="overrides.yaml"),
+        ),
+        field_groups=(FieldGroup(F[Config].host, F[Config].port),),
+    ),
+    Config,
+)
+```
+
+If `overrides.yaml` changes `host` but not `port`, loading fails:
+
+```
+Config field group errors (1)
+
+  Field group (host, port) partially overridden in source 1
+    changed:   host (from source yaml 'overrides.yaml')
+    unchanged: port (from source yaml 'defaults.yaml')
+```
+
+`debug` is not in the group and can change independently.
+
+**Nested dataclass fields are auto-expanded.** Passing a dataclass field expands it into all its leaf fields:
+
+```python
+@dataclass
+class Database:
+    host: str
+    port: int
+
+@dataclass
+class Config:
+    database: Database
+    timeout: int
+
+config = load(
+    MergeMetadata(
+        sources=(
+            LoadMetadata(file_="defaults.yaml"),
+            LoadMetadata(file_="overrides.yaml"),
+        ),
+        field_groups=(FieldGroup(F[Config].database, F[Config].timeout),),
+    ),
+    Config,
+)
+```
+
+`FieldGroup(F[Config].database, F[Config].timeout)` expands to `(database.host, database.port, timeout)` -- all three must change together or not at all.
+
+**Multiple groups** can be defined independently:
+
+```python
+config = load(
+    MergeMetadata(
+        sources=(
+            LoadMetadata(file_="defaults.yaml"),
+            LoadMetadata(file_="overrides.yaml"),
+        ),
+        field_groups=(
+            FieldGroup(F[Config].host, F[Config].port),
+            FieldGroup(F[Config].user, F[Config].password),
+        ),
+    ),
+    Config,
+)
+```
+
+Field groups work with all merge strategies and can be combined with `field_merges`. In decorator mode, use string references: `F["Config"].host`.
+
 ### Skipping Broken Sources
 
 If a source fails to load (missing file, invalid syntax, etc.), by default the entire load fails. Use `skip_broken_sources` to skip broken sources and continue with the rest:

@@ -1,3 +1,4 @@
+import os
 import pathlib
 import subprocess
 import sys
@@ -10,10 +11,13 @@ example_scripts = list(examples_dir.glob("*.py"))
 
 @pytest.mark.parametrize("script_path", example_scripts, ids=lambda p: p.name)
 def test_example_execution(script_path):
+    env = os.environ.copy()
+
     result = subprocess.run(  # noqa: PLW1510, S603
         [sys.executable, str(script_path)],
         capture_output=True,
         text=True,
+        env=env,
     )
 
     assert result.returncode == 0, f"Script {script_path.name} Failed!\n\nError:\n{result.stderr}"

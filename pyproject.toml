@@ -36,6 +36,12 @@ ignore = [
     "S105",    # possible hardcoded password
     "FBT001",  # boolean argument in function definition
 ]
+"examples/**/*.py" = [
+    "INP001",  # implicit namespace package
+    "T201",    # print
+    "S105",    # possible hardcoded password
+    "DTZ001",  # datetime without tzinfo
+]
 
 [tool.ruff.lint.pylint]
 max-args = 6
@@ -68,6 +74,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 pythonpath = [
     "src",
+    ".",
 ]
 
 [dependency-groups]

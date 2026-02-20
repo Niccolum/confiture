@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
-from tests.sources_loader.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact, assert_all_types_equal
+from examples.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact
+from tests.sources_loader.checker import assert_all_types_equal
 
 
 class TestEnvFileLoader:

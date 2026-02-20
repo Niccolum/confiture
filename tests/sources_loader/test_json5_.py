@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dature.sources_loader.json5_ import Json5Loader
-from tests.sources_loader.all_types_dataclass import (
+from examples.all_types_dataclass import (
     EXPECTED_ALL_TYPES,
     AllPythonTypesCompact,
-    assert_all_types_equal,
 )
+from tests.sources_loader.checker import assert_all_types_equal
 
 
 class TestJson5Loader:

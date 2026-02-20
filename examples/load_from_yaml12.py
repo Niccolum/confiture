@@ -1,0 +1,34 @@
+"""field_mapping + expand_env_vars — remap keys and substitute $ENV variables."""
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+from dature import LoadMetadata, load
+
+SOURCES_DIR = Path(__file__).parent / "sources"
+
+os.environ["DB_USER"] = "admin"
+os.environ["DB_PASS"] = "s3cret"
+os.environ["APP_SECRET_KEY"] = "my-secret-key-42"
+
+
+@dataclass
+class DbConfig:
+    database_url: str
+    secret_key: str
+    pool_size: int
+
+
+config = load(
+    LoadMetadata(
+        file_=str(SOURCES_DIR / "mapped.yaml"),
+        field_mapping={"database_url": "db_url", "secret_key": "key", "pool_size": "pool"},
+        expand_env_vars="default",
+    ),
+    DbConfig,
+)
+
+print(f"database_url: {config.database_url}")
+print(f"secret_key: {config.secret_key}")
+print(f"pool_size: {config.pool_size}")

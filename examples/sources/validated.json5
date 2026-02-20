@@ -1,0 +1,7 @@
+{
+  // Service configuration with validation constraints
+  port: 8080,
+  name: "my-service",
+  tags: ["web", "api", "production"],
+  workers: 4,
+}

@@ -245,9 +245,12 @@ def load_as_function(
         data=raw_data if isinstance(raw_data, dict) else {},
     )
 
+    validating_retort = loader_instance.create_validating_retort(dataclass_)
+    validation_loader = validating_retort.get_loader(dataclass_)
+
     try:
-        result = handle_load_errors(
-            func=lambda: loader_instance.transform_to_dataclass(raw_data, dataclass_),
+        handle_load_errors(
+            func=lambda: validation_loader(raw_data),
             ctx=error_ctx,
         )
     except DatureConfigError as exc:
@@ -257,14 +260,9 @@ def load_as_function(
             raise enrich_skipped_errors(exc, skipped_fields) from exc
         raise
 
-    result_dict = asdict(result)
-
-    validating_retort = loader_instance.create_validating_retort(dataclass_)
-    validation_loader = validating_retort.get_loader(dataclass_)
-
     try:
-        handle_load_errors(
-            func=lambda: validation_loader(result_dict),
+        result = handle_load_errors(
+            func=lambda: loader_instance.transform_to_dataclass(raw_data, dataclass_),
             ctx=error_ctx,
         )
     except DatureConfigError as exc:

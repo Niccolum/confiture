@@ -1,10 +1,11 @@
-# Comprehensive test file with all Python basic types
+# Comprehensive test file with all Python basic types (YAML 1.1)
+# Uses YAML 1.1-specific features: yes/no booleans, sexagesimal time
 
 # SCALAR TYPES
 string_value: "hello world"
 integer_value: 42
 float_value: 3.14159
-boolean_value: true
+boolean_value: yes
 none_value: null
 
 # NUMERIC
@@ -38,7 +39,7 @@ list_mixed:
   - string
   - 42
   - 3.14
-  - true
+  - yes
   - null
 
 list_nested:
@@ -53,7 +54,7 @@ list_dicts:
 
 # TUPLES (as lists, adaptix will convert)
 tuple_simple: [1, 2, 3]
-tuple_mixed: ["text", 42, true]
+tuple_mixed: ["text", 42, yes]
 tuple_nested: [[1, 2, 3], ["a", "b", "c"]]
 
 # SETS (as lists, adaptix will convert)
@@ -69,7 +70,7 @@ dict_mixed:
   string: text
   number: 42
   float: 3.14
-  bool: true
+  bool: yes
   list: [1, 2, 3]
 
 dict_nested:
@@ -127,7 +128,7 @@ empty_list: []
 empty_dict: {}
 zero_int: 0
 zero_float: 0.0
-false_bool: false
+false_bool: no
 
 # ADVANCED PATTERNS
 optional_string: null

@@ -29,6 +29,12 @@ def collect_validation_errors() -> Callable[[BaseException], list[ValidationLoad
 
 
 @pytest.fixture
+def examples_dir() -> Path:
+    """Return path to examples directory."""
+    return Path(__file__).parent.parent / "examples"
+
+
+@pytest.fixture
 def fixtures_dir() -> Path:
     """Return path to fixtures directory."""
     return Path(__file__).parent / "fixtures"
@@ -48,9 +54,9 @@ def custom_separator_env_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_env_file(fixtures_dir: Path) -> Path:
+def all_types_env_file(examples_dir: Path) -> Path:
     """Path to all_types.env file."""
-    return fixtures_dir / "all_types.env"
+    return examples_dir / "sources" / "all_types.env"
 
 
 # YAML fixtures
@@ -67,9 +73,15 @@ def prefixed_yaml_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_yaml_file(fixtures_dir: Path) -> Path:
-    """Path to all_types.yaml file."""
-    return fixtures_dir / "all_types.yaml"
+def all_types_yaml11_file(examples_dir: Path) -> Path:
+    """Path to all_types YAML 1.1 file."""
+    return examples_dir / "sources" / "all_types_yaml11.yaml"
+
+
+@pytest.fixture
+def all_types_yaml12_file(examples_dir: Path) -> Path:
+    """Path to all_types YAML 1.2 file."""
+    return examples_dir / "sources" / "all_types_yaml12.yaml"
 
 
 # JSON fixtures
@@ -80,9 +92,9 @@ def prefixed_json_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_json_file(fixtures_dir: Path) -> Path:
+def all_types_json_file(examples_dir: Path) -> Path:
     """Path to all_types.json file."""
-    return fixtures_dir / "all_types.json"
+    return examples_dir / "sources" / "all_types.json"
 
 
 # JSON5 fixtures
@@ -93,9 +105,9 @@ def prefixed_json5_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_json5_file(fixtures_dir: Path) -> Path:
+def all_types_json5_file(examples_dir: Path) -> Path:
     """Path to all_types.json5 file."""
-    return fixtures_dir / "all_types.json5"
+    return examples_dir / "sources" / "all_types.json5"
 
 
 # TOML fixtures
@@ -106,9 +118,9 @@ def prefixed_toml_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_toml_file(fixtures_dir: Path) -> Path:
+def all_types_toml_file(examples_dir: Path) -> Path:
     """Path to all_types.toml file."""
-    return fixtures_dir / "all_types.toml"
+    return examples_dir / "sources" / "all_types.toml"
 
 
 # INI fixtures
@@ -125,6 +137,6 @@ def prefixed_ini_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_ini_file(fixtures_dir: Path) -> Path:
+def all_types_ini_file(examples_dir: Path) -> Path:
     """Path to all_types.ini file."""
-    return fixtures_dir / "all_types.ini"
+    return examples_dir / "sources" / "all_types.ini"

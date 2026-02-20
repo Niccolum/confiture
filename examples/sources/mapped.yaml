@@ -1,0 +1,3 @@
+db_url: "postgresql://$DB_USER:$DB_PASS@localhost:5432/mydb"
+key: "$APP_SECRET_KEY"
+pool: 10

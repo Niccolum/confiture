@@ -4,20 +4,20 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dature.sources_loader.yaml_ import Yaml12Loader
-from tests.sources_loader.all_types_dataclass import (
+from examples.all_types_dataclass import (
     EXPECTED_ALL_TYPES,
     AllPythonTypesCompact,
-    assert_all_types_equal,
 )
+from tests.sources_loader.checker import assert_all_types_equal
 
 
 class TestYaml12Loader:
     """Tests for Yaml12Loader class."""
 
-    def test_comprehensive_type_conversion(self, all_types_yaml_file: Path):
+    def test_comprehensive_type_conversion(self, all_types_yaml12_file: Path):
         """Test loading YAML with full type coercion to dataclass."""
         loader = Yaml12Loader()
-        result = loader.load(all_types_yaml_file, AllPythonTypesCompact)
+        result = loader.load(all_types_yaml12_file, AllPythonTypesCompact)
 
         assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 

@@ -30,8 +30,6 @@ class ErrorConfig:
     address: Address
 
 
-# adaptix stops at load errors before running validators,
-# so we split into two dataclasses to test both phases separately
 @dataclass
 class LoadErrorConfig:
     port: int
@@ -69,7 +67,7 @@ ALL_SOURCES = [
 
 def _load_error_message(p: str) -> str:
     return dedent("""\
-        LoadErrorConfig loading errors (3)
+        LoadErrorConfig loading errors (5)
 
           [port]  Bad string format
            └── FILE '{path}', line 2
@@ -81,6 +79,14 @@ def _load_error_message(p: str) -> str:
           [status]  Invalid variant: 'unknown'
            └── FILE '{path}', line 3
                "status": "unknown",
+
+          [address.city]  Value must have at least 2 characters
+           └── FILE '{path}', line 9
+               "city": "N",
+
+          [address.zip_code]  Value must match pattern '^\\d{5}$'
+           └── FILE '{path}', line 10
+               "zip_code": "ABCDE"
         """).replace("{path}", p)
 
 
@@ -129,7 +135,7 @@ EXPECTED_VALIDATION_MESSAGES["json"] = _validation_error_message(_file("errors.j
 # --- json5 ---
 _json5_path = _file("errors.json5")
 EXPECTED_LOAD_MESSAGES["json5"] = dedent(f"""\
-    LoadErrorConfig loading errors (3)
+    LoadErrorConfig loading errors (5)
 
       [port]  Bad string format
        └── FILE '{_json5_path}', line 3
@@ -141,7 +147,16 @@ EXPECTED_LOAD_MESSAGES["json5"] = dedent(f"""\
       [status]  Invalid variant: 'unknown'
        └── FILE '{_json5_path}', line 5
            status: "unknown",
+
+      [address.city]  Value must have at least 2 characters
+       └── FILE '{_json5_path}', line 16
+           city: "N",
+
+      [address.zip_code]  Value must match pattern '^\\d{{5}}$'
+       └── FILE '{_json5_path}', line 17
+           zip_code: "ABCDE",
     """)
+
 EXPECTED_VALIDATION_MESSAGES["json5"] = dedent(f"""\
     ValidationErrorConfig loading errors (6)
 
@@ -173,7 +188,7 @@ EXPECTED_VALIDATION_MESSAGES["json5"] = dedent(f"""\
 # --- yaml ---
 _yaml_path = _file("errors.yaml")
 EXPECTED_LOAD_MESSAGES["yaml"] = dedent(f"""\
-    LoadErrorConfig loading errors (3)
+    LoadErrorConfig loading errors (5)
 
       [port]  Bad string format
        └── FILE '{_yaml_path}', line 1
@@ -185,6 +200,14 @@ EXPECTED_LOAD_MESSAGES["yaml"] = dedent(f"""\
       [status]  Invalid variant: 'unknown'
        └── FILE '{_yaml_path}', line 2
            status: "unknown"
+
+      [address.city]  Value must have at least 2 characters
+       └── FILE '{_yaml_path}', line 8
+           city: "N"
+
+      [address.zip_code]  Value must match pattern '^\\d{{5}}$'
+       └── FILE '{_yaml_path}', line 9
+           zip_code: "ABCDE"
     """)
 EXPECTED_VALIDATION_MESSAGES["yaml"] = dedent(f"""\
     ValidationErrorConfig loading errors (6)
@@ -217,7 +240,7 @@ EXPECTED_VALIDATION_MESSAGES["yaml"] = dedent(f"""\
 # --- toml ---
 _toml_path = _file("errors.toml")
 EXPECTED_LOAD_MESSAGES["toml"] = dedent(f"""\
-    LoadErrorConfig loading errors (3)
+    LoadErrorConfig loading errors (5)
 
       [port]  Bad string format
        └── FILE '{_toml_path}', line 1
@@ -229,6 +252,14 @@ EXPECTED_LOAD_MESSAGES["toml"] = dedent(f"""\
       [status]  Invalid variant: 'unknown'
        └── FILE '{_toml_path}', line 2
            status = "unknown"
+
+      [address.city]  Value must have at least 2 characters
+       └── FILE '{_toml_path}', line 9
+           city = "N"
+
+      [address.zip_code]  Value must match pattern '^\\d{{5}}$'
+       └── FILE '{_toml_path}', line 10
+           zip_code = "ABCDE"
     """)
 EXPECTED_VALIDATION_MESSAGES["toml"] = dedent(f"""\
     ValidationErrorConfig loading errors (6)
@@ -261,7 +292,7 @@ EXPECTED_VALIDATION_MESSAGES["toml"] = dedent(f"""\
 # --- ini ---
 _ini_path = _file("errors.ini")
 EXPECTED_LOAD_MESSAGES["ini"] = dedent(f"""\
-    LoadErrorConfig loading errors (3)
+    LoadErrorConfig loading errors (5)
 
       [port]  Bad string format
        └── FILE '{_ini_path}', line 2
@@ -273,6 +304,14 @@ EXPECTED_LOAD_MESSAGES["ini"] = dedent(f"""\
       [status]  Invalid variant: 'unknown'
        └── FILE '{_ini_path}', line 3
            status = unknown
+
+      [address.city]  Value must have at least 2 characters
+       └── FILE '{_ini_path}', line 10
+           city = N
+
+      [address.zip_code]  Value must match pattern '^\\d{{5}}$'
+       └── FILE '{_ini_path}', line 11
+           zip_code = ABCDE
     """)
 EXPECTED_VALIDATION_MESSAGES["ini"] = dedent(f"""\
     ValidationErrorConfig loading errors (6)
@@ -305,7 +344,7 @@ EXPECTED_VALIDATION_MESSAGES["ini"] = dedent(f"""\
 # --- env ---
 _env_path = _file("errors.env")
 EXPECTED_LOAD_MESSAGES["env"] = dedent(f"""\
-    LoadErrorConfig loading errors (3)
+    LoadErrorConfig loading errors (5)
 
       [port]  Bad string format
        └── ENV FILE '{_env_path}', var 'PORT'
@@ -317,6 +356,14 @@ EXPECTED_LOAD_MESSAGES["env"] = dedent(f"""\
       [status]  Invalid variant: 'unknown'
        └── ENV FILE '{_env_path}', var 'STATUS'
            STATUS=unknown
+
+      [address.city]  Value must have at least 2 characters
+       └── ENV FILE '{_env_path}', var 'ADDRESS__CITY'
+           ADDRESS__CITY=N
+
+      [address.zip_code]  Value must match pattern '^\\d{{5}}$'
+       └── ENV FILE '{_env_path}', var 'ADDRESS__ZIP_CODE'
+           ADDRESS__ZIP_CODE=ABCDE
     """)
 EXPECTED_VALIDATION_MESSAGES["env"] = dedent(f"""\
     ValidationErrorConfig loading errors (6)

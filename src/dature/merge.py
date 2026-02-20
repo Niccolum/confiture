@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
-from dataclasses import asdict, fields, is_dataclass
-from typing import cast
+from dataclasses import dataclass as stdlib_dataclass
+from dataclasses import fields, is_dataclass
 
 from dature.deep_merge import deep_merge, deep_merge_last_wins, raise_on_conflict
 from dature.error_formatter import enrich_skipped_errors, handle_load_errors
@@ -156,13 +156,20 @@ def _merge_raw_dicts(
     return merged
 
 
+@stdlib_dataclass(frozen=True, slots=True)
+class _MergedData[T: DataclassInstance]:
+    result: T
+    merged_raw: JSONValue
+    last_loader: ILoader
+
+
 def _load_and_merge[T: DataclassInstance](
     *,
     merge_meta: MergeMetadata,
     dataclass_: type[T],
     loaders: tuple[ILoader, ...] | None = None,
     debug: bool = False,
-) -> T:
+) -> _MergedData[T]:
     loaded = load_sources(
         merge_meta=merge_meta,
         dataclass_name=dataclass_.__name__,
@@ -243,7 +250,7 @@ def _load_and_merge[T: DataclassInstance](
     if report is not None:
         attach_load_report(result, report)
 
-    return result
+    return _MergedData(result=result, merged_raw=merged, last_loader=loaded.last_loader)
 
 
 def merge_load_as_function[T: DataclassInstance](
@@ -252,33 +259,30 @@ def merge_load_as_function[T: DataclassInstance](
     *,
     debug: bool = False,
 ) -> T:
-    result = _load_and_merge(
+    data = _load_and_merge(
         merge_meta=merge_meta,
         dataclass_=dataclass_,
         debug=debug,
     )
 
-    last_meta = merge_meta.sources[-1]
-    last_expand = resolve_expand_env_vars(last_meta, merge_meta)
-    last_loader = resolve_loader(last_meta, expand_env_vars=last_expand)
-    validating_retort = last_loader.create_validating_retort(dataclass_)
+    validating_retort = data.last_loader.create_validating_retort(dataclass_)
     validation_loader = validating_retort.get_loader(dataclass_)
-    result_dict = asdict(cast("DataclassInstance", result))
 
+    last_meta = merge_meta.sources[-1]
     last_error_ctx = build_error_ctx(last_meta, dataclass_.__name__)
     try:
         handle_load_errors(
-            func=lambda: validation_loader(result_dict),
+            func=lambda: validation_loader(data.merged_raw),
             ctx=last_error_ctx,
         )
     except DatureConfigError:
         if debug:
-            report = get_load_report(result)
+            report = get_load_report(data.result)
             if report is not None:
                 attach_load_report(dataclass_, report)
         raise
 
-    return result
+    return data.result
 
 
 class _MergePatchContext:
@@ -341,7 +345,7 @@ def _make_merge_new_init(ctx: _MergePatchContext) -> Callable[..., None]:
                     dataclass_=ctx.cls,
                     loaders=ctx.loaders,
                     debug=ctx.debug,
-                )
+                ).result
             finally:
                 ctx.loading = False
             if ctx.cache:

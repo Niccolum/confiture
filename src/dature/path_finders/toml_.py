@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from dature.errors import LineRange
-from dature.source_locators.line_base import LinePathFinder
+from dature.path_finders.line_base import LinePathFinder
 
 
 class TomlPathFinder(LinePathFinder):

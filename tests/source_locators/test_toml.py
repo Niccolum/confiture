@@ -1,5 +1,5 @@
 from dature.errors import LineRange
-from dature.source_locators.toml_ import TomlPathFinder
+from dature.path_finders.toml_ import TomlPathFinder
 
 
 class TestTomlFindLineRange:

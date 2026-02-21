@@ -8,6 +8,7 @@ from adaptix.provider import Provider
 from ruamel.yaml import YAML
 from ruamel.yaml.docinfo import Version
 
+from dature.path_finders.yaml_ import YamlPathFinder
 from dature.sources_loader.base import ILoader
 from dature.sources_loader.loaders import (
     bytearray_from_string,
@@ -20,6 +21,8 @@ from dature.types import JSONValue
 
 
 class BaseYamlLoader(ILoader, abc.ABC):
+    path_finder_class = YamlPathFinder
+
     @abc.abstractmethod
     def _yaml_version(self) -> Version: ...
 

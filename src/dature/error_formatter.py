@@ -27,25 +27,10 @@ from dature.errors import (
     MissingEnvVarError,
     SourceLocation,
 )
-from dature.source_locators.base import PathFinder
-from dature.source_locators.ini_ import TablePathFinder
+from dature.path_finders.base import PathFinder
 
 if TYPE_CHECKING:
     from dature.metadata import LoadMetadata
-from dature.source_locators.json5_ import Json5PathFinder
-from dature.source_locators.json_ import JsonPathFinder
-from dature.source_locators.toml_ import TomlPathFinder
-from dature.source_locators.yaml_ import YamlPathFinder
-
-_PATH_FINDER_MAP: dict[str, type[PathFinder]] = {
-    "yaml": YamlPathFinder,
-    "yaml1.1": YamlPathFinder,
-    "yaml1.2": YamlPathFinder,
-    "json": JsonPathFinder,
-    "json5": Json5PathFinder,
-    "toml": TomlPathFinder,
-    "ini": TablePathFinder,
-}
 
 
 @dataclass(frozen=True)
@@ -55,6 +40,7 @@ class ErrorContext:
     file_path: Path | None
     prefix: str | None
     split_symbols: str
+    path_finder_class: type[PathFinder] | None
 
 
 def _describe_error(exc: BaseException) -> str:
@@ -196,16 +182,16 @@ def _resolve_file_location(
     file_path: Path | None,
     file_content: str | None,
     prefix: str | None,
+    path_finder_class: type[PathFinder] | None,
 ) -> SourceLocation:
     if file_content is None or not field_path:
         return _empty_file_location(loader_type, file_path)
 
-    finder_class = _PATH_FINDER_MAP.get(loader_type)
-    if finder_class is None:
+    if path_finder_class is None:
         return _empty_file_location(loader_type, file_path)
 
     search_path = _build_search_path(field_path, prefix)
-    finder = finder_class(file_content)
+    finder = path_finder_class(file_content)
     line_range = finder.find_line_range(search_path)
     if line_range is None:
         return _empty_file_location(loader_type, file_path)
@@ -260,7 +246,14 @@ def resolve_source_location(
             env_var_name=env_var_name,
         )
 
-    return _resolve_file_location(field_path, ctx.loader_type, ctx.file_path, file_content, ctx.prefix)
+    return _resolve_file_location(
+        field_path=field_path,
+        loader_type=ctx.loader_type,
+        file_path=ctx.file_path,
+        file_content=file_content,
+        prefix=ctx.prefix,
+        path_finder_class=ctx.path_finder_class,
+    )
 
 
 def handle_load_errors[T](

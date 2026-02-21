@@ -1,7 +1,7 @@
 import abc
 
 from dature.errors import LineRange
-from dature.source_locators.base import PathFinder
+from dature.path_finders.base import PathFinder
 
 
 class LinePathFinder(PathFinder):

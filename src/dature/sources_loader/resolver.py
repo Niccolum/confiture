@@ -10,7 +10,7 @@ from dature.sources_loader.toml_ import TomlLoader
 from dature.types import ExpandEnvVarsMode
 
 
-def _get_loader_class(loader_type: LoaderType) -> type[ILoader]:
+def get_loader_class(loader_type: LoaderType) -> type[ILoader]:
     match loader_type:
         case "env":
             return EnvLoader
@@ -45,7 +45,7 @@ def resolve_loader(
     expand_env_vars: ExpandEnvVarsMode | None = None,
 ) -> ILoader:
     loader_type = get_loader_type(metadata.loader, metadata.file_)
-    loader_class = _get_loader_class(loader_type)
+    loader_class = get_loader_class(loader_type)
 
     resolved_expand = expand_env_vars or metadata.expand_env_vars or "default"
 

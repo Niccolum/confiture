@@ -1,5 +1,5 @@
 from dature.errors import LineRange
-from dature.source_locators.json_ import JsonPathFinder
+from dature.path_finders.json_ import JsonPathFinder
 
 
 class TestJsonFindLineRange:

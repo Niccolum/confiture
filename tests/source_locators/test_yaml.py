@@ -1,5 +1,5 @@
 from dature.errors import LineRange
-from dature.source_locators.yaml_ import YamlPathFinder
+from dature.path_finders.yaml_ import YamlPathFinder
 
 
 class TestYamlFindLineRange:

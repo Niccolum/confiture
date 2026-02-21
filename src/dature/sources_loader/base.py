@@ -12,6 +12,7 @@ from adaptix.provider import Provider
 
 from dature.env_expand import expand_env_vars
 from dature.fields import ByteSize, PaymentCardNumber, SecretStr
+from dature.path_finders.base import PathFinder
 from dature.protocols import DataclassInstance, ValidatorProtocol
 from dature.skip_field_provider import ModelToDictProvider, SkipFieldProvider
 from dature.sources_loader.loaders.base import (
@@ -48,6 +49,8 @@ logger = logging.getLogger("dature")
 
 
 class ILoader(abc.ABC):
+    path_finder_class: type[PathFinder] | None = None
+
     def __init__(
         self,
         *,

@@ -1,5 +1,5 @@
 from dature.errors import LineRange
-from dature.source_locators.ini_ import TablePathFinder
+from dature.path_finders.ini_ import TablePathFinder
 
 
 class TestIniFindLineRange:

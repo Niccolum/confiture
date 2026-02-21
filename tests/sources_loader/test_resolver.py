@@ -10,7 +10,7 @@ from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json5_ import Json5Loader
 from dature.sources_loader.json_ import JsonLoader
 from dature.sources_loader.resolver import (
-    _get_loader_class,
+    get_loader_class,
     resolve_loader,
 )
 from dature.sources_loader.toml_ import TomlLoader
@@ -33,11 +33,11 @@ class TestGetLoaderClass:
         ],
     )
     def test_known_types(self, loader_type: str, expected_class: type):
-        assert _get_loader_class(loader_type) is expected_class
+        assert get_loader_class(loader_type) is expected_class
 
     def test_unknown_type_raises(self):
         with pytest.raises(ValueError, match="Unknown loader type"):
-            _get_loader_class("nonexistent")
+            get_loader_class("nonexistent")
 
 
 class TestResolveLoader:

@@ -14,6 +14,7 @@ from dature.predicate import extract_field_path
 from dature.protocols import DataclassInstance
 from dature.skip_field_provider import FilterResult, filter_invalid_fields
 from dature.sources_loader.base import ILoader
+from dature.sources_loader.resolver import get_loader_class
 from dature.types import JSONValue
 
 logger = logging.getLogger("dature")
@@ -21,6 +22,7 @@ logger = logging.getLogger("dature")
 
 def build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContext:
     loader_type = get_loader_type(metadata.loader, metadata.file_)
+    loader_class = get_loader_class(loader_type)
     error_file_path = Path(metadata.file_) if metadata.file_ else None
     return ErrorContext(
         dataclass_name=dataclass_name,
@@ -28,6 +30,7 @@ def build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContext
         file_path=error_file_path,
         prefix=metadata.prefix,
         split_symbols=metadata.split_symbols,
+        path_finder_class=loader_class.path_finder_class,
     )
 
 

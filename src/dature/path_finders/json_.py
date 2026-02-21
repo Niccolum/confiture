@@ -1,4 +1,4 @@
-from dature.source_locators.char_base import (
+from dature.path_finders.char_base import (
     CharPathFinder,
     KeyParseResult,
     PosLine,

@@ -6,6 +6,7 @@ from typing import Any, cast
 from adaptix import loader
 from adaptix.provider import Provider
 
+from dature.path_finders.toml_ import TomlPathFinder
 from dature.sources_loader.base import ILoader
 from dature.sources_loader.loaders import (
     bytearray_from_string,
@@ -19,6 +20,8 @@ from dature.types import JSONValue
 
 
 class TomlLoader(ILoader):
+    path_finder_class = TomlPathFinder
+
     def _additional_loaders(self) -> list[Provider]:
         return [
             loader(date, date_passthrough),

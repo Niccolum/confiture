@@ -9,6 +9,8 @@ from adaptix.load_error import AggregateLoadError, LoadError
 from dature import LoadMetadata, load
 from dature.error_formatter import ErrorContext, extract_field_errors, resolve_source_location
 from dature.errors import DatureConfigError, FieldLoadError, LineRange, SourceLocation
+from dature.path_finders.json_ import JsonPathFinder
+from dature.path_finders.toml_ import TomlPathFinder
 
 
 class TestExtractFieldErrors:
@@ -87,6 +89,7 @@ class TestResolveSourceLocation:
             file_path=None,
             prefix="APP_",
             split_symbols="__",
+            path_finder_class=None,
         )
         loc = resolve_source_location(["database", "port"], ctx, file_content=None)
         assert loc.source_type == "env"
@@ -100,6 +103,7 @@ class TestResolveSourceLocation:
             file_path=None,
             prefix=None,
             split_symbols="__",
+            path_finder_class=None,
         )
         loc = resolve_source_location(["timeout"], ctx, file_content=None)
         assert loc.env_var_name == "TIMEOUT"
@@ -111,6 +115,7 @@ class TestResolveSourceLocation:
             file_path=None,
             prefix="APP_",
             split_symbols="_",
+            path_finder_class=None,
         )
         loc = resolve_source_location(["database", "port"], ctx, file_content=None)
         assert loc.env_var_name == "APP_DATABASE_PORT"
@@ -123,6 +128,7 @@ class TestResolveSourceLocation:
             file_path=Path("config.json"),
             prefix=None,
             split_symbols="__",
+            path_finder_class=JsonPathFinder,
         )
         loc = resolve_source_location(["timeout"], ctx, file_content=content)
         assert loc.source_type == "json"
@@ -137,6 +143,7 @@ class TestResolveSourceLocation:
             file_path=Path("config.toml"),
             prefix=None,
             split_symbols="__",
+            path_finder_class=TomlPathFinder,
         )
         loc = resolve_source_location(["timeout"], ctx, file_content=content)
         assert loc.source_type == "toml"
@@ -151,6 +158,7 @@ class TestResolveSourceLocation:
             file_path=Path(".env"),
             prefix="APP_",
             split_symbols="__",
+            path_finder_class=None,
         )
         loc = resolve_source_location(["timeout"], ctx, file_content=content)
         assert loc.source_type == "envfile"

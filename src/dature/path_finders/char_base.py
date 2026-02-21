@@ -2,7 +2,7 @@ import abc
 from dataclasses import dataclass
 
 from dature.errors import LineRange
-from dature.source_locators.base import PathFinder
+from dature.path_finders.base import PathFinder
 
 
 @dataclass

@@ -577,6 +577,58 @@ class TestLineTruncation:
                    {truncated}
             """)
 
+    def test_four_lines_shows_two_and_ellipsis(self) -> None:
+        errors = [
+            FieldLoadError(
+                field_path=["db"],
+                message="Expected int, got dict",
+                input_value=None,
+                location=SourceLocation(
+                    source_type="json",
+                    file_path=Path("config.json"),
+                    line_range=LineRange(start=2, end=5),
+                    line_content=["line1", "line2", "line3", "line4"],
+                    env_var_name=None,
+                ),
+            ),
+        ]
+        exc = DatureConfigError("Config", errors)
+        assert str(exc) == dedent("""\
+            Config loading errors (1)
+
+              [db]  Expected int, got dict
+               └── FILE 'config.json', line 2-5
+                   line1
+                   line2
+                   ...
+            """)
+
+    def test_five_lines_shows_two_and_ellipsis(self) -> None:
+        errors = [
+            FieldLoadError(
+                field_path=["db"],
+                message="Expected int, got dict",
+                input_value=None,
+                location=SourceLocation(
+                    source_type="json",
+                    file_path=Path("config.json"),
+                    line_range=LineRange(start=2, end=6),
+                    line_content=["line1", "line2", "line3", "line4", "line5"],
+                    env_var_name=None,
+                ),
+            ),
+        ]
+        exc = DatureConfigError("Config", errors)
+        assert str(exc) == dedent("""\
+            Config loading errors (1)
+
+              [db]  Expected int, got dict
+               └── FILE 'config.json', line 2-6
+                   line1
+                   line2
+                   ...
+            """)
+
 
 class TestMultilineValueDisplay:
     def test_json_multiline_dict(self, tmp_path: Path):
@@ -600,8 +652,7 @@ class TestMultilineValueDisplay:
                └── FILE '{json_file}', line 2-5
                    "db": {{
                      "host": "localhost",
-                     "port": "abc"
-                   }}
+                   ...
             """)
 
     def test_yaml_multiline_block(self, tmp_path: Path):
@@ -650,8 +701,7 @@ class TestMultilineValueDisplay:
                └── FILE '{toml_file}', line 1-4
                    tags = [
                      "a",
-                     "b"
-                   ]
+                   ...
             """)
 
     def test_json_multiline_array(self, tmp_path: Path):
@@ -675,6 +725,5 @@ class TestMultilineValueDisplay:
                └── FILE '{json_file}', line 2-5
                    "tags": [
                      "a",
-                     "b"
-                   ]
+                   ...
             """)

@@ -425,6 +425,62 @@ class TestFieldMapping:
 
         assert result.name == "Direct"
 
+    def test_identity_map_scoped_to_owner_with_name_style(self, tmp_path: Path):
+        @dataclass
+        class Inner:
+            user_name: str
+            display_name: str
+
+        @dataclass
+        class Config:
+            user_name: str
+            inner: Inner
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text(
+            '{"full_name": "Alice", "inner": {"inner_user": "Bob", "displayName": "Bobby"}}',
+        )
+
+        field_mapping = {
+            F[Config].user_name: "full_name",
+            F[Config].inner.user_name: "inner.inner_user",
+        }
+
+        loader = JsonLoader(name_style="lower_camel", field_mapping=field_mapping)
+        result = loader.load(json_file, Config)
+
+        assert result.user_name == "Alice"
+        assert result.inner.user_name == "Bob"
+        assert result.inner.display_name == "Bobby"
+
+    def test_identity_map_flat_json_with_name_style(self, tmp_path: Path):
+        @dataclass
+        class Inner:
+            user_name: str
+            display_name: str
+
+        @dataclass
+        class Config:
+            user_name: str
+            inner: Inner
+
+        json_file = tmp_path / "config.json"
+        json_file.write_text(
+            '{"full_name": "Alice", "inner_user": "Bob", "inner": {"displayName": "Bobby"}}',
+        )
+
+        field_mapping = {
+            F[Config].user_name: "full_name",
+            F[Config].inner.user_name: "inner_user",
+        }
+
+        loader = JsonLoader(name_style="lower_camel", field_mapping=field_mapping)
+        result = loader.load(json_file, Config)
+
+        assert result.user_name == "Alice"
+        assert result.inner.user_name == "Bob"
+        assert result.inner.display_name == "Bobby"
+
 
 class TestExpandEnvVars:
     def test_default_expands_existing(self, monkeypatch):

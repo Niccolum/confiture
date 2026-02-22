@@ -18,7 +18,17 @@ class AliasEntry:
     aliases: tuple[str, ...]
 
 
-def _resolve_nested_owner(
+@dataclass(frozen=True, slots=True)
+class CrossLevelEntry:
+    dest_path: tuple[str, ...]
+    field_name: str
+    aliases: tuple[str, ...]
+
+
+type AliasMapEntry = AliasEntry | CrossLevelEntry
+
+
+def resolve_nested_owner(
     owner: type[DataclassInstance],
     parts: tuple[str, ...],
 ) -> type[DataclassInstance]:
@@ -36,16 +46,86 @@ def _resolve_nested_owner(
     return current
 
 
+def _classify_alias(
+    alias: str,
+    field_nesting: tuple[str, ...],
+) -> str | None:
+    """Return stripped alias for same-level, or None for cross-level."""
+    if "." not in alias:
+        return None
+
+    segments = alias.split(".")
+    prefix = tuple(segments[:-1])
+    if prefix == field_nesting:
+        return segments[-1]
+    return None
+
+
+def _add_entry(
+    alias_map: dict[type[DataclassInstance] | str, list[AliasMapEntry]],
+    owner: type[DataclassInstance] | str,
+    entry: AliasMapEntry,
+) -> None:
+    if owner not in alias_map:
+        alias_map[owner] = []
+    alias_map[owner].append(entry)
+
+
+def _process_nested_field_path(
+    alias_map: dict[type[DataclassInstance] | str, list[AliasMapEntry]],
+    field_path: FieldPath,
+    alias_tuple: tuple[str, ...],
+) -> None:
+    if isinstance(field_path.owner, str):
+        msg = (
+            f"Nested FieldPath with string owner '{field_path.owner}' "
+            f"is not supported — cannot resolve intermediate types"
+        )
+        raise TypeError(msg)
+
+    intermediate_parts = field_path.parts[:-1]
+    resolved_owner = resolve_nested_owner(field_path.owner, intermediate_parts)
+    field_name = field_path.parts[-1]
+
+    same_level_aliases: list[str] = []
+    cross_level_aliases: list[str] = []
+
+    for alias in alias_tuple:
+        stripped = _classify_alias(alias, intermediate_parts)
+        if stripped is not None:
+            same_level_aliases.append(stripped)
+        else:
+            same_level_aliases.append(alias)
+            cross_level_aliases.append(alias)
+
+    if same_level_aliases:
+        _add_entry(
+            alias_map,
+            resolved_owner,
+            AliasEntry(field_name=field_name, aliases=tuple(same_level_aliases)),
+        )
+
+    if cross_level_aliases:
+        _add_entry(
+            alias_map,
+            field_path.owner,
+            CrossLevelEntry(
+                dest_path=intermediate_parts,
+                field_name=field_name,
+                aliases=tuple(cross_level_aliases),
+            ),
+        )
+
+
 def _build_alias_map(
     field_mapping: FieldMapping,
-) -> dict[type[DataclassInstance] | str, list[AliasEntry]]:
-    alias_map: dict[type[DataclassInstance] | str, list[AliasEntry]] = {}
+) -> dict[type[DataclassInstance] | str, list[AliasMapEntry]]:
+    alias_map: dict[type[DataclassInstance] | str, list[AliasMapEntry]] = {}
 
     for field_path_key, aliases in field_mapping.items():
         if not isinstance(field_path_key, FieldPath):
             msg = f"field_mapping key must be a FieldPath, got {type(field_path_key).__name__}"
             raise TypeError(msg)
-        field_path: FieldPath = field_path_key
 
         alias_tuple: tuple[str, ...]
         if isinstance(aliases, str):
@@ -53,38 +133,27 @@ def _build_alias_map(
         else:
             alias_tuple = aliases
 
-        if len(field_path.parts) == 0:
+        if len(field_path_key.parts) == 0:
             msg = "FieldPath must contain at least one field name"
             raise ValueError(msg)
 
-        owner: type[DataclassInstance] | str
-        if len(field_path.parts) > 1:
-            if isinstance(field_path.owner, str):
-                msg = (
-                    f"Nested FieldPath with string owner '{field_path.owner}' "
-                    f"is not supported — cannot resolve intermediate types"
-                )
-                raise TypeError(msg)
+        if len(field_path_key.parts) > 1:
+            _process_nested_field_path(alias_map, field_path_key, alias_tuple)
+            continue
 
-            intermediate_parts = field_path.parts[:-1]
-            owner = _resolve_nested_owner(field_path.owner, intermediate_parts)
-        else:
-            owner = field_path.owner
-
-        field_name = field_path.parts[-1]
-        entry = AliasEntry(field_name=field_name, aliases=alias_tuple)
-
-        if owner not in alias_map:
-            alias_map[owner] = []
-        alias_map[owner].append(entry)
+        _add_entry(
+            alias_map,
+            field_path_key.owner,
+            AliasEntry(field_name=field_path_key.parts[-1], aliases=alias_tuple),
+        )
 
     return alias_map
 
 
 def _get_entries_for_type(
-    alias_map: dict[type[DataclassInstance] | str, list[AliasEntry]],
+    alias_map: dict[type[DataclassInstance] | str, list[AliasMapEntry]],
     target_type: type[DataclassInstance],
-) -> list[AliasEntry] | None:
+) -> list[AliasMapEntry] | None:
     entries = alias_map.get(target_type)
     if entries is not None:
         return entries
@@ -96,18 +165,47 @@ def _get_entries_for_type(
     return None
 
 
-def _transform_dict(data: JSONValue, entries: list[AliasEntry]) -> JSONValue:
+def _navigate_to(data: dict[str, JSONValue], path: tuple[str, ...]) -> dict[str, JSONValue] | None:
+    current = data
+    for key in path:
+        value = current.get(key)
+        if not isinstance(value, dict):
+            return None
+        current = value
+    return current
+
+
+def _apply_alias_entry(result: dict[str, JSONValue], entry: AliasEntry) -> None:
+    if entry.field_name in result:
+        return
+    for alias in entry.aliases:
+        if alias in result:
+            result[entry.field_name] = result.pop(alias)
+            return
+
+
+def _apply_cross_level_entry(result: dict[str, JSONValue], entry: CrossLevelEntry) -> None:
+    dest = _navigate_to(result, entry.dest_path)
+    if dest is None:
+        return
+    if entry.field_name in dest:
+        return
+    for alias in entry.aliases:
+        if alias in result:
+            dest[entry.field_name] = result.pop(alias)
+            return
+
+
+def _transform_dict(data: JSONValue, entries: list[AliasMapEntry]) -> JSONValue:
     if not isinstance(data, dict):
         return data
 
     result = dict(data)
     for entry in entries:
-        if entry.field_name in result:
-            continue
-        for alias in entry.aliases:
-            if alias in result:
-                result[entry.field_name] = result.pop(alias)
-                break
+        if isinstance(entry, AliasEntry):
+            _apply_alias_entry(result, entry)
+        else:
+            _apply_cross_level_entry(result, entry)
 
     return result
 

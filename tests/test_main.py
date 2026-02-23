@@ -10,12 +10,12 @@ from dature.sources_loader.env_ import EnvFileLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json5_ import Json5Loader
 from dature.sources_loader.json_ import JsonLoader
-from dature.sources_loader.toml_ import TomlLoader
+from dature.sources_loader.toml_ import Toml10Loader, Toml11Loader
 from dature.sources_loader.yaml_ import Yaml11Loader, Yaml12Loader
 
 
 def _all_file_loaders() -> list[type]:
-    return [EnvFileLoader, Yaml11Loader, Yaml12Loader, JsonLoader, Json5Loader, TomlLoader, IniLoader]
+    return [EnvFileLoader, Yaml11Loader, Yaml12Loader, JsonLoader, Json5Loader, Toml10Loader, Toml11Loader, IniLoader]
 
 
 class TestLoadAsDecorator:

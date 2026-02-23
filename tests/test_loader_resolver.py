@@ -5,7 +5,7 @@ from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json5_ import Json5Loader
 from dature.sources_loader.json_ import JsonLoader
-from dature.sources_loader.toml_ import TomlLoader
+from dature.sources_loader.toml_ import Toml11Loader
 from dature.sources_loader.yaml_ import Yaml11Loader, Yaml12Loader
 
 
@@ -24,7 +24,7 @@ class TestResolveLoaderClass:
             (".yml", Yaml12Loader),
             (".json", JsonLoader),
             (".json5", Json5Loader),
-            (".toml", TomlLoader),
+            (".toml", Toml11Loader),
             (".ini", IniLoader),
             (".cfg", IniLoader),
         ],

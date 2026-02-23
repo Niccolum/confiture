@@ -16,6 +16,7 @@ keywords = [
     "type-safe",
     "yaml",
     "json",
+    "json5",
     "toml",
     "ini",
     "env",
@@ -45,9 +46,8 @@ Issues = "https://github.com/Niccolum/dature/issues"
 
 [project.optional-dependencies]
 yaml = ["ruamel.yaml>=0.18"]
-json5 = [
-    "json5>=0.10",
-]
+json5 = ["json-five>=1.1.2"]
+toml = ["toml-rs>=0.3.4"]
 
 [tool.ruff]
 line-length = 120
@@ -110,6 +110,9 @@ python_functions = ["test_*"]
 pythonpath = [
     "src",
 ]
+
+[tool.uv.sources]
+toml-rs = { git = "https://github.com/lava-sh/toml-rs", branch = "metadata" }
 
 [dependency-groups]
 dev = [

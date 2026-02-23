@@ -1,9 +1,9 @@
-"""Tests for toml_ module (TomlLoader)."""
+"""Tests for toml_ module (Toml10Loader)."""
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from dature.sources_loader.toml_ import TomlLoader
+from dature.sources_loader.toml_ import Toml10Loader
 from examples.all_types_dataclass import (
     EXPECTED_ALL_TYPES,
     AllPythonTypesCompact,
@@ -11,13 +11,13 @@ from examples.all_types_dataclass import (
 from tests.sources_loader.checker import assert_all_types_equal
 
 
-class TestTomlLoader:
-    """Tests for TomlLoader class."""
+class TestToml10Loader:
+    """Tests for Toml10Loader class."""
 
-    def test_comprehensive_type_conversion(self, all_types_toml_file: Path):
+    def test_comprehensive_type_conversion(self, all_types_toml10_file: Path):
         """Test loading TOML with full type coercion to dataclass."""
-        loader = TomlLoader()
-        result = loader.load(all_types_toml_file, AllPythonTypesCompact)
+        loader = Toml10Loader()
+        result = loader.load(all_types_toml10_file, AllPythonTypesCompact)
 
         assert_all_types_equal(result, EXPECTED_ALL_TYPES)
 
@@ -35,7 +35,7 @@ class TestTomlLoader:
             debug=False,
             environment="production",
         )
-        loader = TomlLoader(prefix="app")
+        loader = Toml10Loader(prefix="app")
 
         result = loader.load(prefixed_toml_file, PrefixedConfig)
 
@@ -46,7 +46,7 @@ class TestTomlLoader:
         toml_file = tmp_path / "empty.toml"
         toml_file.write_text("")
 
-        loader = TomlLoader()
+        loader = Toml10Loader()
         data = loader._load(toml_file)
 
         assert data == {}
@@ -63,7 +63,7 @@ class TestTomlLoader:
             name: str
             port: int
 
-        loader = TomlLoader()
+        loader = Toml10Loader()
         result = loader.load(toml_file, Config)
 
         assert result.name == "MyApp"
@@ -80,7 +80,7 @@ class TestTomlLoader:
         class Config:
             url: str
 
-        loader = TomlLoader()
+        loader = Toml10Loader()
         result = loader.load(toml_file, Config)
 
         assert result.url == "http://localhost:8080/api"
@@ -95,7 +95,7 @@ class TestTomlLoader:
         class Config:
             value: str
 
-        loader = TomlLoader()
+        loader = Toml10Loader()
         result = loader.load(toml_file, Config)
 
         assert result.value == "prefixreplaced/suffix"
@@ -110,7 +110,7 @@ class TestTomlLoader:
         class Config:
             value: str
 
-        loader = TomlLoader()
+        loader = Toml10Loader()
         result = loader.load(toml_file, Config)
 
         assert result.value == "prefix$nonexistent/suffix"

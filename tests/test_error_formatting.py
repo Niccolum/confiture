@@ -10,7 +10,7 @@ from dature import LoadMetadata, load
 from dature.error_formatter import ErrorContext, extract_field_errors, resolve_source_location
 from dature.errors import DatureConfigError, FieldLoadError, LineRange, SourceLocation
 from dature.path_finders.json_ import JsonPathFinder
-from dature.path_finders.toml_ import TomlPathFinder
+from dature.path_finders.toml_ import Toml11PathFinder
 
 
 class TestExtractFieldErrors:
@@ -143,7 +143,7 @@ class TestResolveSourceLocation:
             file_path=Path("config.toml"),
             prefix=None,
             split_symbols="__",
-            path_finder_class=TomlPathFinder,
+            path_finder_class=Toml11PathFinder,
         )
         loc = resolve_source_location(["timeout"], ctx, file_content=content)
         assert loc.source_type == "toml"

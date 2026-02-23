@@ -1,12 +1,14 @@
-import tomllib
+import abc
 from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any, cast
 
+import toml_rs
 from adaptix import loader
 from adaptix.provider import Provider
+from toml_rs._lib import TomlVersion
 
-from dature.path_finders.toml_ import TomlPathFinder
+from dature.path_finders.toml_ import Toml10PathFinder, Toml11PathFinder
 from dature.sources_loader.base import BaseLoader
 from dature.sources_loader.loaders import (
     bytearray_from_string,
@@ -19,9 +21,13 @@ from dature.sources_loader.loaders import (
 from dature.types import JSONValue
 
 
-class TomlLoader(BaseLoader):
-    display_name = "toml"
-    path_finder_class = TomlPathFinder
+class BaseTomlLoader(BaseLoader, abc.ABC):
+    @abc.abstractmethod
+    def _toml_version(self) -> TomlVersion: ...
+
+    def _load(self, path: Path) -> JSONValue:
+        with path.open() as file_:
+            return cast("JSONValue", toml_rs.loads(file_.read(), toml_version=self._toml_version()))
 
     def _additional_loaders(self) -> list[Provider]:
         return [
@@ -34,6 +40,18 @@ class TomlLoader(BaseLoader):
             loader(Any, optional_from_empty_string),
         ]
 
-    def _load(self, path: Path) -> JSONValue:
-        with path.open("rb") as file_:
-            return cast("JSONValue", tomllib.load(file_))
+
+class Toml10Loader(BaseTomlLoader):
+    display_name = "toml1.0"
+    path_finder_class = Toml10PathFinder
+
+    def _toml_version(self) -> TomlVersion:
+        return "1.0.0"
+
+
+class Toml11Loader(BaseTomlLoader):
+    display_name = "toml1.1"
+    path_finder_class = Toml11PathFinder
+
+    def _toml_version(self) -> TomlVersion:
+        return "1.1.0"

@@ -6,7 +6,7 @@ from dature.path_finders.toml_metadata import build_toml_line_map
 
 
 class TomlPathFinder(PathFinder):
-    def __init__(self, content: str, *, toml_version: TomlVersion = "1.0.0") -> None:
+    def __init__(self, content: str, *, toml_version: TomlVersion) -> None:
         self._line_map = build_toml_line_map(content, toml_version)
 
     def find_line_range(self, target_path: list[str]) -> LineRange | None:

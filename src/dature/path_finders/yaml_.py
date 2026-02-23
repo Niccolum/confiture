@@ -1,45 +1,23 @@
+from ruamel.yaml.docinfo import Version
+
 from dature.errors import LineRange
-from dature.path_finders.line_base import LinePathFinder
+from dature.path_finders.base import PathFinder
+from dature.path_finders.yaml_metadata import build_yaml_line_map
 
 
-class YamlPathFinder(LinePathFinder):
+class YamlPathFinder(PathFinder):
+    def __init__(self, content: str, *, yaml_version: Version) -> None:
+        self._line_map = build_yaml_line_map(content, yaml_version)
+
+    def find_line_range(self, target_path: list[str]) -> LineRange | None:
+        return self._line_map.get(tuple(target_path))
+
+
+class Yaml11PathFinder(YamlPathFinder):
     def __init__(self, content: str) -> None:
-        super().__init__(content)
-        self._stack: list[dict[str, str | int]] = []
+        super().__init__(content, yaml_version=Version(1, 1))
 
-    def _process_line(self, line_num: int, line: str, target_path: list[str]) -> LineRange | None:
-        stripped = line.lstrip()
-        if not stripped or stripped.startswith(("#", "-")):
-            return None
 
-        indent = len(line) - len(stripped)
-        key_part, sep, value_part = stripped.partition(":")
-        if not sep:
-            return None
-
-        key = key_part.strip().strip("\"'")
-
-        while self._stack and int(self._stack[-1]["indent"]) >= indent:
-            self._stack.pop()
-
-        self._stack.append({"key": key, "indent": indent})
-        if [item["key"] for item in self._stack] != target_path:
-            return None
-
-        value = value_part.strip()
-        # Inline value (not empty and not block scalar indicator)
-        if value and value not in ("|", ">", "|-", ">-", "|+", ">+"):
-            return LineRange(start=line_num, end=line_num)
-
-        # Block value or nested mapping: scan forward
-        end_line = line_num
-        for j in range(line_num, len(self._lines)):
-            next_line = self._lines[j]
-            next_stripped = next_line.lstrip()
-            if not next_stripped or next_stripped.startswith("#"):
-                continue
-            next_indent = len(next_line) - len(next_stripped)
-            if next_indent <= indent:
-                break
-            end_line = j + 1  # 1-based
-        return LineRange(start=line_num, end=end_line)
+class Yaml12PathFinder(YamlPathFinder):
+    def __init__(self, content: str) -> None:
+        super().__init__(content, yaml_version=Version(1, 2))

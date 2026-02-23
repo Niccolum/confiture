@@ -16,6 +16,7 @@ keywords = [
     "type-safe",
     "yaml",
     "json",
+    "json5",
     "toml",
     "ini",
     "env",
@@ -46,7 +47,7 @@ Issues = "https://github.com/Niccolum/dature/issues"
 [project.optional-dependencies]
 yaml = ["ruamel.yaml>=0.18"]
 json5 = [
-    "json5>=0.10",
+    "json-five>=1.1.2",
 ]
 
 [tool.ruff]

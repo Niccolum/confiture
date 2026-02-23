@@ -8,7 +8,7 @@ from adaptix.provider import Provider
 from ruamel.yaml import YAML
 from ruamel.yaml.docinfo import Version
 
-from dature.path_finders.yaml_ import YamlPathFinder
+from dature.path_finders.yaml_ import Yaml11PathFinder, Yaml12PathFinder
 from dature.sources_loader.base import BaseLoader
 from dature.sources_loader.loaders import (
     bytearray_from_string,
@@ -21,8 +21,6 @@ from dature.types import JSONValue
 
 
 class BaseYamlLoader(BaseLoader, abc.ABC):
-    path_finder_class = YamlPathFinder
-
     @abc.abstractmethod
     def _yaml_version(self) -> Version: ...
 
@@ -35,6 +33,7 @@ class BaseYamlLoader(BaseLoader, abc.ABC):
 
 class Yaml11Loader(BaseYamlLoader):
     display_name = "yaml1.1"
+    path_finder_class = Yaml11PathFinder
 
     def _yaml_version(self) -> Version:
         return Version(1, 1)
@@ -50,6 +49,7 @@ class Yaml11Loader(BaseYamlLoader):
 
 class Yaml12Loader(BaseYamlLoader):
     display_name = "yaml1.2"
+    path_finder_class = Yaml12PathFinder
 
     def _yaml_version(self) -> Version:
         return Version(1, 2)

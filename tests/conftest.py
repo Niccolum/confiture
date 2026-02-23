@@ -118,9 +118,15 @@ def prefixed_toml_file(fixtures_dir: Path) -> Path:
 
 
 @pytest.fixture
-def all_types_toml_file(examples_dir: Path) -> Path:
-    """Path to all_types.toml file."""
-    return examples_dir / "sources" / "all_types.toml"
+def all_types_toml10_file(examples_dir: Path) -> Path:
+    """Path to all_types TOML 1.0 file."""
+    return examples_dir / "sources" / "all_types_toml10.toml"
+
+
+@pytest.fixture
+def all_types_toml11_file(examples_dir: Path) -> Path:
+    """Path to all_types TOML 1.1 file."""
+    return examples_dir / "sources" / "all_types_toml11.toml"
 
 
 # INI fixtures

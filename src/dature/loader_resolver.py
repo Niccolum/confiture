@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json_ import JsonLoader
-from dature.sources_loader.toml_ import TomlLoader
 
 if TYPE_CHECKING:
     from dature.protocols import LoaderProtocol
@@ -17,7 +16,9 @@ def _resolve_by_extension(extension: str) -> "type[LoaderProtocol]":
         case ".json":
             return JsonLoader
         case ".toml":
-            return TomlLoader
+            from dature.sources_loader.toml_ import Toml11Loader  # noqa: PLC0415
+
+            return Toml11Loader
         case ".ini" | ".cfg":
             return IniLoader
         case ".env":

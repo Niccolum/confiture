@@ -40,6 +40,8 @@ class LoadMetadata:
     expand_env_vars: "ExpandEnvVarsMode | None" = None
     skip_if_broken: bool | None = None
     skip_if_invalid: "bool | tuple[FieldPath, ...] | None" = None
+    secret_field_names: tuple[str, ...] | None = None
+    mask_secrets: bool | None = None
 
     def __repr__(self) -> str:
         loader_class = resolve_loader_class(self.loader, self.file_)
@@ -72,3 +74,5 @@ class MergeMetadata:
     skip_broken_sources: bool = False
     skip_invalid_fields: bool = False
     expand_env_vars: "ExpandEnvVarsMode" = "default"
+    secret_field_names: tuple[str, ...] | None = None
+    mask_secrets: bool = True

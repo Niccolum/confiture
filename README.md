@@ -13,6 +13,7 @@ Optional format support:
 ```bash
 pip install dature[yaml]   # YAML support (ruamel.yaml)
 pip install dature[json5]  # JSON5 support
+pip install dature[secure] # Secret detection heuristics (random-string-detector)
 ```
 
 ## Quick Start
@@ -564,7 +565,7 @@ Without `debug=True`, `get_load_report` returns `None` and emits a warning.
 
 ### Debug logging
 
-All loading steps are logged at `DEBUG` level under the `"dature"` logger regardless of the `debug` flag:
+All loading steps are logged at `DEBUG` level under the `"dature"` logger regardless of the `debug` flag. Secret values are automatically masked in log output (see [Secret Masking](#secret-masking)):
 
 ```python
 import logging
@@ -914,6 +915,91 @@ String values in all file formats support environment variable expansion. Suppor
 | `%VAR%` | Windows-style variable |
 | `$$` | Literal `$` (escaped) |
 | `%%` | Literal `%` (escaped) |
+
+## Secret Masking
+
+dature automatically masks secret values in error messages, debug logs, and `LoadReport` to prevent accidental leakage of sensitive data.
+
+### Detection methods
+
+1. **By field type** -- fields typed as `SecretStr` or `PaymentCardNumber` are always masked.
+2. **By field name** -- if the field name contains any of the default patterns as a substring (case-insensitive): `password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `api_secret`, `access_key`, `private_key`, `auth`, `credential`, `credentials`.
+3. **Heuristic** -- with the optional `random-string-detector` dependency (`pip install dature[secure]`), string values that look like random tokens are detected and masked. Without this dependency, heuristic detection is silently skipped.
+
+### Mask format
+
+- Strings longer than 4 characters: first 2 and last 2 characters are visible, the rest is replaced with `*`. Example: `"my_secret_password"` → `"my**************rd"`.
+- Strings of 4 characters or fewer: fully masked. Example: `"1234"` → `"****"`.
+
+### Configuration
+
+Control masking via `LoadMetadata` and `MergeMetadata`:
+
+```python
+from dature import LoadMetadata, MergeMetadata, load
+
+# Add custom secret patterns (added to defaults)
+config = load(
+    LoadMetadata(
+        file_="config.yaml",
+        secret_field_names=("connection_string", "dsn"),
+    ),
+    Config,
+)
+
+# Disable masking entirely
+config = load(
+    LoadMetadata(file_="config.yaml", mask_secrets=False),
+    Config,
+)
+
+# In merge mode
+config = load(
+    MergeMetadata(
+        sources=(
+            LoadMetadata(file_="defaults.yaml"),
+            LoadMetadata(file_="secrets.yaml", secret_field_names=("custom_key",)),
+        ),
+        mask_secrets=True,  # enabled by default
+        secret_field_names=("my_pattern",),  # extra patterns for all sources
+    ),
+    Config,
+)
+```
+
+`LoadMetadata.mask_secrets` overrides `MergeMetadata.mask_secrets` when not `None`. `secret_field_names` from both are combined.
+
+### Example
+
+```python
+from dataclasses import dataclass
+from dature import LoadMetadata, load
+from dature.fields import SecretStr
+
+@dataclass
+class Config:
+    host: str
+    password: str       # masked by name
+    api_key: SecretStr  # masked by type
+
+config = load(LoadMetadata(file_="config.yaml"), Config, debug=True)
+```
+
+Error messages show masked values:
+
+```
+Config loading errors (1)
+
+  [password]  Expected str, got int
+   └── FILE 'config.yaml', line 2
+       password: ****
+```
+
+Debug logs also show masked data:
+
+```
+[Config] Loaded data: {'host': 'localhost', 'password': 'my******rd', 'api_key': 'sk********************xy'}
+```
 
 ```yaml
 # config.yaml

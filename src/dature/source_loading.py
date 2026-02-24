@@ -10,6 +10,7 @@ from dature.loader_resolver import resolve_loader_class
 from dature.loading_context import apply_skip_invalid, build_error_ctx
 from dature.metadata import LoadMetadata, MergeMetadata
 from dature.protocols import DataclassInstance, LoaderProtocol
+from dature.secret_masking import mask_json_value
 from dature.skip_field_provider import FilterResult
 from dature.sources_loader.resolver import resolve_loader
 from dature.types import ExpandEnvVarsMode, JSONValue
@@ -50,6 +51,18 @@ def resolve_skip_invalid(
     return merge_meta.skip_invalid_fields
 
 
+def resolve_mask_secrets(source_meta: LoadMetadata, merge_meta: MergeMetadata) -> bool:
+    if source_meta.mask_secrets is not None:
+        return source_meta.mask_secrets
+    return merge_meta.mask_secrets
+
+
+def resolve_secret_field_names(source_meta: LoadMetadata, merge_meta: MergeMetadata) -> tuple[str, ...]:
+    source_names = source_meta.secret_field_names or ()
+    merge_names = merge_meta.secret_field_names or ()
+    return source_names + merge_names
+
+
 def apply_merge_skip_invalid(
     *,
     raw: JSONValue,
@@ -81,12 +94,13 @@ class LoadedSources:
     skipped_fields: dict[str, list[LoadMetadata]]
 
 
-def load_sources(
+def load_sources(  # noqa: C901
     *,
     merge_meta: MergeMetadata,
     dataclass_name: str,
     dataclass_: type[DataclassInstance],
     loaders: tuple[LoaderProtocol, ...] | None = None,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> LoadedSources:
     raw_dicts: list[JSONValue] = []
     source_ctxs: list[tuple[ErrorContext, str | None]] = []
@@ -103,7 +117,7 @@ def load_sources(
             expand_env_vars=resolved_expand,
         )
         file_path = Path(source_meta.file_) if source_meta.file_ else Path()
-        error_ctx = build_error_ctx(source_meta, dataclass_name)
+        error_ctx = build_error_ctx(source_meta, dataclass_name, secret_paths=secret_paths)
 
         def _load_raw(li: LoaderProtocol = loader_instance, fp: Path = file_path) -> JSONValue:
             return li.load_raw(fp)
@@ -172,11 +186,15 @@ def load_sources(
             source_meta.file_ or "<env>",
             sorted(raw.keys()) if isinstance(raw, dict) else "<non-dict>",
         )
+        if secret_paths:
+            masked_raw = mask_json_value(raw, secret_paths=secret_paths)
+        else:
+            masked_raw = raw
         logger.debug(
             "[%s] Source %d raw data: %s",
             dataclass_name,
             i,
-            raw,
+            masked_raw,
         )
 
         source_entries.append(

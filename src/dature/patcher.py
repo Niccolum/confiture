@@ -17,6 +17,7 @@ from dature.loading_context import (
 )
 from dature.metadata import LoadMetadata
 from dature.protocols import DataclassInstance, LoaderProtocol
+from dature.secret_masking import build_secret_paths, mask_json_value
 from dature.types import JSONValue
 
 if TYPE_CHECKING:
@@ -31,6 +32,7 @@ def _log_single_source_load(
     loader_type: str,
     file_path: str,
     data: JSONValue,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> None:
     logger.debug(
         "[%s] Single-source load: loader=%s, file=%s",
@@ -38,10 +40,14 @@ def _log_single_source_load(
         loader_type,
         file_path,
     )
+    if secret_paths:
+        masked_data = mask_json_value(data, secret_paths=secret_paths)
+    else:
+        masked_data = data
     logger.debug(
         "[%s] Loaded data: %s",
         dataclass_name,
-        data,
+        masked_data,
     )
 
 
@@ -51,7 +57,11 @@ def _build_single_source_report(
     loader_type: str,
     file_path: str | None,
     raw_data: JSONValue,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> LoadReport:
+    if secret_paths:
+        raw_data = mask_json_value(raw_data, secret_paths=secret_paths)
+
     source = SourceEntry(
         index=0,
         file_path=file_path,
@@ -111,7 +121,13 @@ class _PatchContext:
 
         loader_class = resolve_loader_class(metadata.loader, metadata.file_)
         self.loader_type = loader_class.display_name
-        self.error_ctx = build_error_ctx(metadata, cls.__name__)
+
+        self.secret_paths: frozenset[str] = frozenset()
+        if metadata.mask_secrets is None or metadata.mask_secrets:
+            extra_patterns = metadata.secret_field_names or ()
+            self.secret_paths = build_secret_paths(cls, extra_patterns=extra_patterns)
+
+        self.error_ctx = build_error_ctx(metadata, cls.__name__, secret_paths=self.secret_paths)
 
         # probe_retort создаётся заранее, чтобы adaptix увидел оригинальную сигнатуру
         self.probe_retort: Retort | None = None
@@ -176,6 +192,7 @@ def _make_new_init(ctx: _PatchContext) -> Callable[..., None]:
                 loader_type=ctx.loader_type,
                 file_path=str(ctx.file_path),
                 data=asdict(loaded_data),
+                secret_paths=ctx.secret_paths,
             )
 
             if ctx.cache:
@@ -191,6 +208,7 @@ def _make_new_init(ctx: _PatchContext) -> Callable[..., None]:
                 loader_type=ctx.loader_type,
                 file_path=str(ctx.file_path) if ctx.metadata.file_ is not None else None,
                 raw_data=result_dict,
+                secret_paths=ctx.secret_paths,
             )
             attach_load_report(self, report)
 
@@ -200,7 +218,7 @@ def _make_new_init(ctx: _PatchContext) -> Callable[..., None]:
     return new_init
 
 
-def load_as_function(
+def load_as_function(  # noqa: C901
     *,
     loader_instance: LoaderProtocol,
     file_path: Path,
@@ -210,7 +228,13 @@ def load_as_function(
 ) -> DataclassInstance:
     loader_class = resolve_loader_class(metadata.loader, metadata.file_)
     display_name = loader_class.display_name
-    error_ctx = build_error_ctx(metadata, dataclass_.__name__)
+
+    secret_paths: frozenset[str] = frozenset()
+    if metadata.mask_secrets is None or metadata.mask_secrets:
+        extra_patterns = metadata.secret_field_names or ()
+        secret_paths = build_secret_paths(dataclass_, extra_patterns=extra_patterns)
+
+    error_ctx = build_error_ctx(metadata, dataclass_.__name__, secret_paths=secret_paths)
 
     raw_data = handle_load_errors(
         func=lambda: loader_instance.load_raw(file_path),
@@ -237,6 +261,7 @@ def load_as_function(
             loader_type=display_name,
             file_path=metadata.file_,
             raw_data=raw_data,
+            secret_paths=secret_paths,
         )
 
     _log_single_source_load(
@@ -244,6 +269,7 @@ def load_as_function(
         loader_type=display_name,
         file_path=str(file_path),
         data=raw_data if isinstance(raw_data, dict) else {},
+        secret_paths=secret_paths,
     )
 
     validating_retort = loader_instance.create_validating_retort(dataclass_)

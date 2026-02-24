@@ -18,7 +18,12 @@ from dature.types import JSONValue
 logger = logging.getLogger("dature")
 
 
-def build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContext:
+def build_error_ctx(
+    metadata: LoadMetadata,
+    dataclass_name: str,
+    *,
+    secret_paths: frozenset[str] = frozenset(),
+) -> ErrorContext:
     loader_class = resolve_loader_class(metadata.loader, metadata.file_)
     error_file_path = Path(metadata.file_) if metadata.file_ else None
     return ErrorContext(
@@ -28,6 +33,7 @@ def build_error_ctx(metadata: LoadMetadata, dataclass_name: str) -> ErrorContext
         prefix=metadata.prefix,
         split_symbols=metadata.split_symbols,
         path_finder_class=loader_class.path_finder_class,
+        secret_paths=secret_paths,
     )
 
 

@@ -28,6 +28,7 @@ from dature.errors import (
     SourceLocation,
 )
 from dature.path_finders.base import PathFinder
+from dature.secret_masking import mask_env_line, mask_value
 
 if TYPE_CHECKING:
     from dature.metadata import LoadMetadata
@@ -41,9 +42,10 @@ class ErrorContext:
     prefix: str | None
     split_symbols: str
     path_finder_class: type[PathFinder] | None
+    secret_paths: frozenset[str] = frozenset()
 
 
-def _describe_error(exc: BaseException) -> str:
+def _describe_error(exc: BaseException, *, is_secret: bool = False) -> str:
     if isinstance(exc, (ValidationLoadError, ValueLoadError)):
         return str(exc.msg)
 
@@ -61,6 +63,9 @@ def _describe_error(exc: BaseException) -> str:
         return f"Unknown field(s): {field_names}"
 
     if isinstance(exc, BadVariantLoadError):
+        if is_secret:
+            masked = mask_value(str(exc.input_value))
+            return f"Invalid variant: {masked!r}"
         return f"Invalid variant: {exc.input_value!r}"
 
     return str(exc)
@@ -70,13 +75,15 @@ def _walk_exception(
     exc: BaseException,
     parent_path: list[str],
     result: list[FieldLoadError],
+    *,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> None:
     trail = list(get_trail(exc))
     current_path = parent_path + [str(elem) for elem in trail]
 
     if isinstance(exc, LoadExceptionGroup):
         for sub_exc in exc.exceptions:
-            _walk_exception(sub_exc, current_path, result)
+            _walk_exception(sub_exc, current_path, result, secret_paths=secret_paths)
         return
 
     if isinstance(exc, NoRequiredFieldsLoadError):
@@ -90,18 +97,27 @@ def _walk_exception(
         )
         return
 
+    is_secret = ".".join(current_path) in secret_paths
+    input_value = getattr(exc, "input_value", None)
+    if is_secret and input_value is not None:
+        input_value = mask_value(str(input_value))
+
     result.append(
         FieldLoadError(
             field_path=current_path,
-            message=_describe_error(exc),
-            input_value=getattr(exc, "input_value", None),
+            message=_describe_error(exc, is_secret=is_secret),
+            input_value=input_value,
         ),
     )
 
 
-def extract_field_errors(exc: BaseException) -> list[FieldLoadError]:
+def extract_field_errors(
+    exc: BaseException,
+    *,
+    secret_paths: frozenset[str] = frozenset(),
+) -> list[FieldLoadError]:
     result: list[FieldLoadError] = []
-    _walk_exception(exc, [], result)
+    _walk_exception(exc, [], result, secret_paths=secret_paths)
     return result
 
 
@@ -217,6 +233,8 @@ def resolve_source_location(
     ctx: ErrorContext,
     file_content: str | None,
 ) -> SourceLocation:
+    is_secret = ".".join(field_path) in ctx.secret_paths
+
     if ctx.loader_type == "env":
         env_var_name = _build_env_var_name(field_path, ctx.prefix, ctx.split_symbols)
         return SourceLocation(
@@ -231,11 +249,14 @@ def resolve_source_location(
         env_var_name = _build_env_var_name(field_path, ctx.prefix, ctx.split_symbols)
         if file_content is not None:
             location = _find_env_line(file_content, env_var_name)
+            line_content = location.line_content
+            if is_secret and line_content is not None:
+                line_content = [mask_env_line(line) for line in line_content]
             return SourceLocation(
                 source_type="envfile",
                 file_path=ctx.file_path,
                 line_range=location.line_range,
-                line_content=location.line_content,
+                line_content=line_content,
                 env_var_name=env_var_name,
             )
         return SourceLocation(
@@ -246,7 +267,7 @@ def resolve_source_location(
             env_var_name=env_var_name,
         )
 
-    return _resolve_file_location(
+    location = _resolve_file_location(
         field_path=field_path,
         loader_type=ctx.loader_type,
         file_path=ctx.file_path,
@@ -254,6 +275,16 @@ def resolve_source_location(
         prefix=ctx.prefix,
         path_finder_class=ctx.path_finder_class,
     )
+    if ctx.secret_paths and location.line_content is not None:
+        masked_lines = [mask_env_line(line) for line in location.line_content]
+        return SourceLocation(
+            source_type=location.source_type,
+            file_path=location.file_path,
+            line_range=location.line_range,
+            line_content=masked_lines,
+            env_var_name=location.env_var_name,
+        )
+    return location
 
 
 def handle_load_errors[T](
@@ -268,7 +299,7 @@ def handle_load_errors[T](
         raise EnvVarExpandError(missing, dataclass_name=ctx.dataclass_name) from exc
     except (AggregateLoadError, LoadError) as exc:
         file_content = read_file_content(ctx.file_path)
-        field_errors = extract_field_errors(exc)
+        field_errors = extract_field_errors(exc, secret_paths=ctx.secret_paths)
         enriched: list[FieldLoadError] = []
         for fe in field_errors:
             location = resolve_source_location(fe.field_path, ctx, file_content)

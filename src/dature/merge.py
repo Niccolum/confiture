@@ -19,6 +19,13 @@ from dature.loading_context import build_error_ctx, ensure_retort, make_validati
 from dature.metadata import FieldMergeStrategy, MergeMetadata, MergeStrategy
 from dature.predicate import ResolvedFieldGroup, build_field_group_paths, build_field_merge_map
 from dature.protocols import DataclassInstance, LoaderProtocol
+from dature.secret_masking import (
+    build_secret_paths,
+    mask_field_origins,
+    mask_json_value,
+    mask_source_entries,
+    mask_value,
+)
 from dature.source_loading import load_sources, resolve_expand_env_vars
 from dature.sources_loader.resolver import resolve_loader
 from dature.types import JSONValue
@@ -26,7 +33,16 @@ from dature.types import JSONValue
 logger = logging.getLogger("dature")
 
 
-def _log_merge_step(
+def _collect_extra_secret_patterns(merge_meta: MergeMetadata) -> tuple[str, ...]:
+    merge_names = merge_meta.secret_field_names or ()
+    source_names: list[str] = []
+    for source_meta in merge_meta.sources:
+        if source_meta.secret_field_names is not None:
+            source_names.extend(source_meta.secret_field_names)
+    return merge_names + tuple(source_names)
+
+
+def _log_merge_step(  # noqa: PLR0913
     *,
     dataclass_name: str,
     step_idx: int,
@@ -34,6 +50,7 @@ def _log_merge_step(
     before: JSONValue,
     source_data: JSONValue,
     after: JSONValue,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> None:
     if isinstance(before, dict) and isinstance(source_data, dict) and isinstance(after, dict):
         added_keys = set(source_data.keys()) - set(before.keys())
@@ -46,11 +63,15 @@ def _log_merge_step(
             sorted(added_keys),
             sorted(overwritten_keys),
         )
+    if secret_paths:
+        masked_after = mask_json_value(after, secret_paths=secret_paths)
+    else:
+        masked_after = after
     logger.debug(
         "[%s] State after step %d: %s",
         dataclass_name,
         step_idx,
-        after,
+        masked_after,
     )
 
 
@@ -58,16 +79,28 @@ def _log_field_origins(
     *,
     dataclass_name: str,
     field_origins: tuple[FieldOrigin, ...],
+    secret_paths: frozenset[str] = frozenset(),
 ) -> None:
     for origin in field_origins:
-        logger.debug(
-            "[%s] Field '%s' = %r  <-- source %d (%s)",
-            dataclass_name,
-            origin.key,
-            origin.value,
-            origin.source_index,
-            origin.source_file or "<env>",
-        )
+        if origin.key in secret_paths:
+            masked = mask_value(str(origin.value))
+            logger.debug(
+                "[%s] Field '%s' = %r  <-- source %d (%s)",
+                dataclass_name,
+                origin.key,
+                masked,
+                origin.source_index,
+                origin.source_file or "<env>",
+            )
+        else:
+            logger.debug(
+                "[%s] Field '%s' = %r  <-- source %d (%s)",
+                dataclass_name,
+                origin.key,
+                origin.value,
+                origin.source_index,
+                origin.source_file or "<env>",
+            )
 
 
 def _build_merge_report(
@@ -77,7 +110,13 @@ def _build_merge_report(
     source_entries: tuple[SourceEntry, ...],
     field_origins: tuple[FieldOrigin, ...],
     merged_data: JSONValue,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> LoadReport:
+    if secret_paths:
+        source_entries = mask_source_entries(source_entries, secret_paths=secret_paths)
+        field_origins = mask_field_origins(field_origins, secret_paths=secret_paths)
+        merged_data = mask_json_value(merged_data, secret_paths=secret_paths)
+
     return LoadReport(
         dataclass_name=dataclass_name,
         strategy=strategy,
@@ -133,6 +172,7 @@ def _merge_raw_dicts(
     strategy: MergeStrategy,
     dataclass_name: str,
     field_merge_map: dict[str, FieldMergeStrategy] | None = None,
+    secret_paths: frozenset[str] = frozenset(),
 ) -> JSONValue:
     merged: JSONValue = {}
     for step_idx, raw in enumerate(raw_dicts):
@@ -150,6 +190,7 @@ def _merge_raw_dicts(
             before=before,
             source_data=raw,
             after=merged,
+            secret_paths=secret_paths,
         )
 
     return merged
@@ -162,18 +203,24 @@ class _MergedData[T: DataclassInstance]:
     last_loader: LoaderProtocol
 
 
-def _load_and_merge[T: DataclassInstance](
+def _load_and_merge[T: DataclassInstance](  # noqa: C901
     *,
     merge_meta: MergeMetadata,
     dataclass_: type[T],
     loaders: tuple[LoaderProtocol, ...] | None = None,
     debug: bool = False,
 ) -> _MergedData[T]:
+    secret_paths: frozenset[str] = frozenset()
+    if merge_meta.mask_secrets:
+        extra_patterns = _collect_extra_secret_patterns(merge_meta)
+        secret_paths = build_secret_paths(dataclass_, extra_patterns=extra_patterns)
+
     loaded = load_sources(
         merge_meta=merge_meta,
         dataclass_name=dataclass_.__name__,
         dataclass_=dataclass_,
         loaders=loaders,
+        secret_paths=secret_paths,
     )
 
     field_merge_map: dict[str, FieldMergeStrategy] | None = None
@@ -201,14 +248,19 @@ def _load_and_merge[T: DataclassInstance](
         strategy=merge_meta.strategy,
         dataclass_name=dataclass_.__name__,
         field_merge_map=field_merge_map,
+        secret_paths=secret_paths,
     )
 
+    if secret_paths:
+        masked_merged = mask_json_value(merged, secret_paths=secret_paths)
+    else:
+        masked_merged = merged
     logger.debug(
         "[%s] Merged result (strategy=%s, %d sources): %s",
         dataclass_.__name__,
         merge_meta.strategy.value,
         len(loaded.raw_dicts),
-        merged,
+        masked_merged,
     )
 
     frozen_entries = tuple(loaded.source_entries)
@@ -221,6 +273,7 @@ def _load_and_merge[T: DataclassInstance](
     _log_field_origins(
         dataclass_name=dataclass_.__name__,
         field_origins=field_origins,
+        secret_paths=secret_paths,
     )
 
     report: LoadReport | None = None
@@ -231,6 +284,7 @@ def _load_and_merge[T: DataclassInstance](
             source_entries=frozen_entries,
             field_origins=field_origins,
             merged_data=merged,
+            secret_paths=secret_paths,
         )
 
     last_error_ctx = loaded.source_ctxs[-1][0]
@@ -268,7 +322,11 @@ def merge_load_as_function[T: DataclassInstance](
     validation_loader = validating_retort.get_loader(dataclass_)
 
     last_meta = merge_meta.sources[-1]
-    last_error_ctx = build_error_ctx(last_meta, dataclass_.__name__)
+    secret_paths: frozenset[str] = frozenset()
+    if merge_meta.mask_secrets:
+        extra_patterns = _collect_extra_secret_patterns(merge_meta)
+        secret_paths = build_secret_paths(dataclass_, extra_patterns=extra_patterns)
+    last_error_ctx = build_error_ctx(last_meta, dataclass_.__name__, secret_paths=secret_paths)
     try:
         handle_load_errors(
             func=lambda: validation_loader(data.merged_raw),

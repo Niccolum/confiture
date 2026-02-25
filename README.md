@@ -11,8 +11,9 @@ pip install dature
 Optional format support:
 
 ```bash
-pip install dature[yaml]   # YAML support (ruamel.yaml)
+pip install dature[yaml]   # YAML support (ruamel.yaml for 1.0, 1.2)
 pip install dature[json5]  # JSON5 support
+pip install dature[toml]  # TOML support (toml_rs for 1.0, 1.1)
 pip install dature[secure] # Secret detection heuristics (random-string-detector)
 ```
 

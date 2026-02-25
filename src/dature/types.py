@@ -1,4 +1,5 @@
 import types
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 from urllib.parse import ParseResult
 
@@ -62,3 +63,5 @@ type ExpandEnvVarsMode = Literal["disabled", "default", "empty", "strict"]
 
 type _ValidatorKey = "FieldPath | str | int | float | bool | None"
 type FieldValidators = dict[_ValidatorKey, "ValidatorProtocol | tuple[ValidatorProtocol, ...]"]
+
+type FieldMergeCallable = Callable[[list[JSONValue]], JSONValue]

@@ -54,9 +54,6 @@ def _apply_list_merge(
     return _deduplicate_list(list(o) + list(b))
 
 
-_COMPARABLE = (int, float, str)
-
-
 def apply_field_merge(
     base: JSONValue,
     override: JSONValue,
@@ -68,25 +65,7 @@ def apply_field_merge(
     if strategy == FieldMergeStrategy.LAST_WINS:
         return override
 
-    if strategy in (
-        FieldMergeStrategy.APPEND,
-        FieldMergeStrategy.APPEND_UNIQUE,
-        FieldMergeStrategy.PREPEND,
-        FieldMergeStrategy.PREPEND_UNIQUE,
-    ):
-        return _apply_list_merge(base, override, strategy)
-
-    if strategy == FieldMergeStrategy.MAX:
-        if isinstance(base, _COMPARABLE) and isinstance(override, _COMPARABLE):
-            return max(base, override)
-        msg = f"MAX strategy requires comparable values, got {type(base).__name__} and {type(override).__name__}"
-        raise TypeError(msg)
-
-    # MIN
-    if isinstance(base, _COMPARABLE) and isinstance(override, _COMPARABLE):
-        return min(base, override)
-    msg = f"MIN strategy requires comparable values, got {type(base).__name__} and {type(override).__name__}"
-    raise TypeError(msg)
+    return _apply_list_merge(base, override, strategy)
 
 
 def deep_merge_last_wins(
@@ -149,6 +128,7 @@ def _collect_conflicts(
     path: list[str],
     conflicts: list[tuple[list[str], list[tuple[int, JSONValue]]]],
     field_merge_map: dict[str, FieldMergeStrategy] | None = None,
+    callable_merge_paths: frozenset[str] | None = None,
 ) -> None:
     key_sources: dict[str, list[tuple[int, JSONValue]]] = {}
 
@@ -165,7 +145,9 @@ def _collect_conflicts(
             continue
 
         field_path = ".".join([*path, key])
-        if field_merge_map is not None and field_path in field_merge_map:
+        has_enum_strategy = field_merge_map is not None and field_path in field_merge_map
+        has_callable_strategy = callable_merge_paths is not None and field_path in callable_merge_paths
+        if has_enum_strategy or has_callable_strategy:
             continue
 
         values = [v for _, v in sources]
@@ -178,6 +160,7 @@ def _collect_conflicts(
                 [*path, key],
                 conflicts,
                 field_merge_map=field_merge_map,
+                callable_merge_paths=callable_merge_paths,
             )
             continue
 
@@ -192,9 +175,17 @@ def raise_on_conflict(
     source_ctxs: list[tuple[ErrorContext, str | None]],
     dataclass_name: str,
     field_merge_map: dict[str, FieldMergeStrategy] | None = None,
+    callable_merge_paths: frozenset[str] | None = None,
 ) -> None:
     conflicts: list[tuple[list[str], list[tuple[int, JSONValue]]]] = []
-    _collect_conflicts(dicts, source_ctxs, [], conflicts, field_merge_map=field_merge_map)
+    _collect_conflicts(
+        dicts,
+        source_ctxs,
+        [],
+        conflicts,
+        field_merge_map=field_merge_map,
+        callable_merge_paths=callable_merge_paths,
+    )
 
     if not conflicts:
         return

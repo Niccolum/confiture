@@ -163,54 +163,6 @@ class TestFieldMergesFunction:
 
         assert result.tags == ["b", "c", "d", "a"]
 
-    def test_max_numbers(self, tmp_path: Path):
-        defaults = tmp_path / "defaults.json"
-        defaults.write_text('{"priority": 5}')
-
-        overrides = tmp_path / "overrides.json"
-        overrides.write_text('{"priority": 10}')
-
-        @dataclass
-        class Config:
-            priority: int
-
-        result = load(
-            MergeMetadata(
-                sources=(
-                    LoadMetadata(file_=str(defaults)),
-                    LoadMetadata(file_=str(overrides)),
-                ),
-                field_merges=(MergeRule(F[Config].priority, FieldMergeStrategy.MAX),),
-            ),
-            Config,
-        )
-
-        assert result.priority == 10
-
-    def test_min_numbers(self, tmp_path: Path):
-        defaults = tmp_path / "defaults.json"
-        defaults.write_text('{"priority": 5}')
-
-        overrides = tmp_path / "overrides.json"
-        overrides.write_text('{"priority": 10}')
-
-        @dataclass
-        class Config:
-            priority: int
-
-        result = load(
-            MergeMetadata(
-                sources=(
-                    LoadMetadata(file_=str(defaults)),
-                    LoadMetadata(file_=str(overrides)),
-                ),
-                field_merges=(MergeRule(F[Config].priority, FieldMergeStrategy.MIN),),
-            ),
-            Config,
-        )
-
-        assert result.priority == 5
-
     def test_nested_field(self, tmp_path: Path):
         defaults = tmp_path / "defaults.json"
         defaults.write_text('{"database": {"host": "localhost", "port": 5432}}')
@@ -487,7 +439,7 @@ class TestFieldMergesWithRaiseOnConflict:
                 strategy=MergeStrategy.RAISE_ON_CONFLICT,
                 field_merges=(
                     MergeRule(F[Config].host, FieldMergeStrategy.FIRST_WINS),
-                    MergeRule(F[Config].port, FieldMergeStrategy.MAX),
+                    MergeRule(F[Config].port, max),
                 ),
             ),
             Config,
@@ -648,16 +600,17 @@ class TestFieldMergesErrors:
             )
 
     @pytest.mark.parametrize(
-        "strategy",
+        ("strategy", "expected"),
         [
-            pytest.param(FieldMergeStrategy.MAX, id="max"),
-            pytest.param(FieldMergeStrategy.MIN, id="min"),
+            pytest.param(max, [3, 4], id="max"),
+            pytest.param(min, [1, 2], id="min"),
         ],
     )
-    def test_max_min_on_lists_raises_type_error(
+    def test_max_min_on_lists_compares_elementwise(
         self,
         tmp_path: Path,
-        strategy: FieldMergeStrategy,
+        strategy: object,
+        expected: list[int],
     ):
         a = tmp_path / "a.json"
         a.write_text('{"value": [1, 2]}')
@@ -669,29 +622,31 @@ class TestFieldMergesErrors:
         class Config:
             value: list[int]
 
-        with pytest.raises(TypeError, match="requires comparable values"):
-            load(
-                MergeMetadata(
-                    sources=(
-                        LoadMetadata(file_=str(a)),
-                        LoadMetadata(file_=str(b)),
-                    ),
-                    field_merges=(MergeRule(F[Config].value, strategy),),
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
                 ),
-                Config,
-            )
+                field_merges=(MergeRule(F[Config].value, strategy),),
+            ),
+            Config,
+        )
+
+        assert result.value == expected
 
     @pytest.mark.parametrize(
-        "strategy",
+        ("strategy", "match"),
         [
-            pytest.param(FieldMergeStrategy.MAX, id="max"),
-            pytest.param(FieldMergeStrategy.MIN, id="min"),
+            pytest.param(max, "'>' not supported between instances of 'dict' and 'dict'", id="max"),
+            pytest.param(min, "'<' not supported between instances of 'dict' and 'dict'", id="min"),
         ],
     )
     def test_max_min_on_dicts_raises_type_error(
         self,
         tmp_path: Path,
-        strategy: FieldMergeStrategy,
+        strategy: object,
+        match: str,
     ):
         a = tmp_path / "a.json"
         a.write_text('{"value": {"nested": 1}}')
@@ -703,7 +658,7 @@ class TestFieldMergesErrors:
         class Config:
             value: dict[str, int]
 
-        with pytest.raises(TypeError, match="requires comparable values, got dict and dict"):
+        with pytest.raises(TypeError, match=match):
             load(
                 MergeMetadata(
                     sources=(
@@ -716,16 +671,17 @@ class TestFieldMergesErrors:
             )
 
     @pytest.mark.parametrize(
-        "strategy",
+        ("strategy", "match"),
         [
-            pytest.param(FieldMergeStrategy.MAX, id="max"),
-            pytest.param(FieldMergeStrategy.MIN, id="min"),
+            pytest.param(max, "'>' not supported between instances of 'int' and 'NoneType'", id="max"),
+            pytest.param(min, "'<' not supported between instances of 'int' and 'NoneType'", id="min"),
         ],
     )
     def test_max_min_on_null_raises_type_error(
         self,
         tmp_path: Path,
-        strategy: FieldMergeStrategy,
+        strategy: object,
+        match: str,
     ):
         a = tmp_path / "a.json"
         a.write_text('{"value": null}')
@@ -737,7 +693,7 @@ class TestFieldMergesErrors:
         class Config:
             value: int | None
 
-        with pytest.raises(TypeError, match="requires comparable values, got NoneType and int"):
+        with pytest.raises(TypeError, match=match):
             load(
                 MergeMetadata(
                     sources=(
@@ -824,7 +780,7 @@ class TestFieldMergesErrors:
                     LoadMetadata(file_=str(b)),
                     LoadMetadata(file_=str(c)),
                 ),
-                field_merges=(MergeRule(F[Config].priority, FieldMergeStrategy.MAX),),
+                field_merges=(MergeRule(F[Config].priority, max),),
             ),
             Config,
         )
@@ -852,7 +808,7 @@ class TestFieldMergesErrors:
                     LoadMetadata(file_=str(b)),
                     LoadMetadata(file_=str(c)),
                 ),
-                field_merges=(MergeRule(F[Config].priority, FieldMergeStrategy.MIN),),
+                field_merges=(MergeRule(F[Config].priority, min),),
             ),
             Config,
         )
@@ -926,3 +882,252 @@ class TestFieldMergesSameFieldNameNested:
 
         assert result.user_name == "root-second"
         assert result.inner.user_name == "nested-first"
+
+
+class TestCallableMergeStrategy:
+    def test_callable_sum_two_sources(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"score": 10}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"score": 20}')
+
+        @dataclass
+        class Config:
+            score: int
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                ),
+                field_merges=(MergeRule(F[Config].score, sum),),
+            ),
+            Config,
+        )
+
+        assert result.score == 30
+
+    def test_callable_sum_three_sources(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"score": 5}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"score": 15}')
+
+        c = tmp_path / "c.json"
+        c.write_text('{"score": 10}')
+
+        @dataclass
+        class Config:
+            score: int
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                    LoadMetadata(file_=str(c)),
+                ),
+                field_merges=(MergeRule(F[Config].score, sum),),
+            ),
+            Config,
+        )
+
+        assert result.score == 30
+
+    def test_callable_average_three_sources(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"weight": 2}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"weight": 4}')
+
+        c = tmp_path / "c.json"
+        c.write_text('{"weight": 12}')
+
+        @dataclass
+        class Config:
+            weight: float
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                    LoadMetadata(file_=str(c)),
+                ),
+                field_merges=(MergeRule(F[Config].weight, lambda vals: sum(vals) / len(vals)),),
+            ),
+            Config,
+        )
+
+        assert result.weight == 6.0
+
+    def test_callable_max_builtin(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"priority": 5}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"priority": 15}')
+
+        c = tmp_path / "c.json"
+        c.write_text('{"priority": 10}')
+
+        @dataclass
+        class Config:
+            priority: int
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                    LoadMetadata(file_=str(c)),
+                ),
+                field_merges=(MergeRule(F[Config].priority, max),),
+            ),
+            Config,
+        )
+
+        assert result.priority == 15
+
+    def test_callable_with_nested_field(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"database": {"port": 3000}}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"database": {"port": 5000}}')
+
+        c = tmp_path / "c.json"
+        c.write_text('{"database": {"port": 7000}}')
+
+        @dataclass
+        class Database:
+            port: int
+
+        @dataclass
+        class Config:
+            database: Database
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                    LoadMetadata(file_=str(c)),
+                ),
+                field_merges=(MergeRule(F[Config].database.port, max),),
+            ),
+            Config,
+        )
+
+        assert result.database.port == 7000
+
+    def test_callable_single_source(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"score": 42}')
+
+        @dataclass
+        class Config:
+            score: int
+
+        result = load(
+            MergeMetadata(
+                sources=(LoadMetadata(file_=str(a)),),
+                field_merges=(MergeRule(F[Config].score, sum),),
+            ),
+            Config,
+        )
+
+        assert result.score == 42
+
+    def test_callable_with_raise_on_conflict(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"score": 10, "name": "app"}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"score": 20}')
+
+        @dataclass
+        class Config:
+            score: int
+            name: str
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                ),
+                strategy=MergeStrategy.RAISE_ON_CONFLICT,
+                field_merges=(MergeRule(F[Config].score, sum),),
+            ),
+            Config,
+        )
+
+        assert result.score == 30
+        assert result.name == "app"
+
+    def test_callable_mixed_with_enum_strategies(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"host": "host-a", "score": 10, "tags": ["x"]}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"host": "host-b", "score": 20, "tags": ["y"]}')
+
+        @dataclass
+        class Config:
+            host: str
+            score: int
+            tags: list[str]
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                ),
+                field_merges=(
+                    MergeRule(F[Config].host, FieldMergeStrategy.FIRST_WINS),
+                    MergeRule(F[Config].score, sum),
+                    MergeRule(F[Config].tags, FieldMergeStrategy.APPEND),
+                ),
+            ),
+            Config,
+        )
+
+        assert result.host == "host-a"
+        assert result.score == 30
+        assert result.tags == ["x", "y"]
+
+    def test_callable_field_missing_in_some_sources(self, tmp_path: Path):
+        a = tmp_path / "a.json"
+        a.write_text('{"score": 10}')
+
+        b = tmp_path / "b.json"
+        b.write_text('{"name": "app"}')
+
+        c = tmp_path / "c.json"
+        c.write_text('{"score": 20}')
+
+        @dataclass
+        class Config:
+            score: int
+            name: str
+
+        result = load(
+            MergeMetadata(
+                sources=(
+                    LoadMetadata(file_=str(a)),
+                    LoadMetadata(file_=str(b)),
+                    LoadMetadata(file_=str(c)),
+                ),
+                field_merges=(MergeRule(F[Config].score, sum),),
+            ),
+            Config,
+        )
+
+        assert result.score == 30
+        assert result.name == "app"

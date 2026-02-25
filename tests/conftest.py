@@ -129,6 +129,21 @@ def all_types_toml11_file(examples_dir: Path) -> Path:
     return examples_dir / "sources" / "all_types_toml11.toml"
 
 
+@pytest.fixture
+def array_of_tables_toml_file(fixtures_dir: Path) -> Path:
+    return fixtures_dir / "array_of_tables.toml"
+
+
+@pytest.fixture
+def array_of_tables_error_first_toml_file(fixtures_dir: Path) -> Path:
+    return fixtures_dir / "array_of_tables_error_first.toml"
+
+
+@pytest.fixture
+def array_of_tables_error_last_toml_file(fixtures_dir: Path) -> Path:
+    return fixtures_dir / "array_of_tables_error_last.toml"
+
+
 # INI fixtures
 @pytest.fixture
 def ini_sections_file(fixtures_dir: Path) -> Path:

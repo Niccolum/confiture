@@ -727,3 +727,74 @@ class TestMultilineValueDisplay:
                      "a",
                    ...
             """)
+
+    def test_toml_array_of_tables_success(self, array_of_tables_toml_file: Path):
+        @dataclass
+        class Product:
+            name: str
+            sku: int
+
+        @dataclass
+        class Config:
+            product: list[Product]
+
+        metadata = LoadMetadata(file_=str(array_of_tables_toml_file))
+        result = load(metadata, Config)
+
+        assert result == Config(
+            product=[
+                Product(name="Hammer", sku=738594937),
+                Product(name="Nail", sku=284758393),
+            ],
+        )
+
+    def test_toml_array_of_tables_error(self, array_of_tables_error_first_toml_file: Path):
+
+        @dataclass
+        class Product:
+            name: str
+            sku: int
+
+        @dataclass
+        class Config:
+            product: list[Product]
+
+        metadata = LoadMetadata(file_=str(array_of_tables_error_first_toml_file))
+
+        with pytest.raises(DatureConfigError) as exc_info:
+            load(metadata, Config)
+
+        err = exc_info.value
+        assert len(err.exceptions) == 1
+        assert str(err) == dedent(f"""\
+            Config loading errors (1)
+
+              [product.0.sku]  Bad string format
+               └── FILE '{array_of_tables_error_first_toml_file}', line 3
+                   sku = "not_a_number"
+            """)
+
+    def test_toml_array_of_tables_error_last_element(self, array_of_tables_error_last_toml_file: Path):
+        @dataclass
+        class Product:
+            name: str
+            sku: int
+
+        @dataclass
+        class Config:
+            product: list[Product]
+
+        metadata = LoadMetadata(file_=str(array_of_tables_error_last_toml_file))
+
+        with pytest.raises(DatureConfigError) as exc_info:
+            load(metadata, Config)
+
+        err = exc_info.value
+        assert len(err.exceptions) == 1
+        assert str(err) == dedent(f"""\
+            Config loading errors (1)
+
+              [product.1.sku]  Bad string format
+               └── FILE '{array_of_tables_error_last_toml_file}', line 7
+                   sku = "not_a_number"
+            """)

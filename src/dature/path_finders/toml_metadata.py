@@ -37,17 +37,27 @@ def _process_leaf_or_inline_table(
     path: tuple[str, ...],
     line_map: dict[tuple[str, ...], LineRange],
 ) -> None:
-    start = node["key_line"]
-    value_line = node["value_line"]
-
-    if isinstance(value_line, tuple):
-        end = value_line[1]
-    else:
-        end = value_line
-
-    line_map[path] = LineRange(start=start, end=end)
-
     value = node.get("value")
-    if isinstance(value, dict):
-        # inline table — recurse into children
-        _walk_nodes(cast("dict[str, KeyMeta]", value), path, line_map)
+    value_line = node.get("value_line")
+
+    if value_line is not None:
+        start = node["key_line"]
+        if isinstance(value_line, tuple):
+            end = value_line[1]
+        else:
+            end = value_line
+        line_map[path] = LineRange(start=start, end=end)
+        if isinstance(value, dict):
+            # inline table — recurse into children
+            _walk_nodes(cast("dict[str, KeyMeta]", value), path, line_map)
+        return
+
+    if isinstance(value, list):
+        # array of tables ([[section]]) — recurse into each element with index
+        for idx, element in enumerate(value):
+            if not isinstance(element, dict):
+                continue
+            inner = element.get("value")
+            if isinstance(inner, dict):
+                indexed_path = (*path, str(idx))
+                _walk_nodes(cast("dict[str, KeyMeta]", inner), indexed_path, line_map)

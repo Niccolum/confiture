@@ -52,14 +52,16 @@ class TestBuildFieldMergeMap:
 
         result = build_field_merge_map(rules)
 
-        assert result == {
+        assert result.enum_map == {
             "host": FieldMergeStrategy.FIRST_WINS,
             "tags": FieldMergeStrategy.APPEND,
         }
+        assert result.callable_map == {}
 
     def test_empty_rules(self):
         result = build_field_merge_map(())
-        assert result == {}
+        assert result.enum_map == {}
+        assert result.callable_map == {}
 
     def test_nested_field_path(self):
         @dataclass
@@ -74,7 +76,24 @@ class TestBuildFieldMergeMap:
 
         result = build_field_merge_map(rules)
 
-        assert result == {"database.host": FieldMergeStrategy.LAST_WINS}
+        assert result.enum_map == {"database.host": FieldMergeStrategy.LAST_WINS}
+        assert result.callable_map == {}
+
+    def test_callable_strategy(self):
+        @dataclass
+        class Config:
+            host: str
+            score: int
+
+        rules = (
+            MergeRule(F[Config].host, FieldMergeStrategy.FIRST_WINS),
+            MergeRule(F[Config].score, sum),
+        )
+
+        result = build_field_merge_map(rules)
+
+        assert result.enum_map == {"host": FieldMergeStrategy.FIRST_WINS}
+        assert result.callable_map == {"score": sum}
 
     def test_validates_owner_mismatch(self):
         @dataclass

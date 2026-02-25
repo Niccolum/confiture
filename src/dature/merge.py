@@ -28,7 +28,7 @@ from dature.secret_masking import (
 )
 from dature.source_loading import load_sources, resolve_expand_env_vars
 from dature.sources_loader.resolver import resolve_loader
-from dature.types import JSONValue
+from dature.types import FieldMergeCallable, JSONValue
 
 logger = logging.getLogger("dature")
 
@@ -166,12 +166,52 @@ def _validate_all_field_groups(
         merged = deep_merge_last_wins(merged, raw, field_merge_map=None)
 
 
+def _collect_field_values(
+    raw_dicts: list[JSONValue],
+    field_path: str,
+) -> list[JSONValue]:
+    parts = field_path.split(".")
+    values: list[JSONValue] = []
+    for raw in raw_dicts:
+        current: JSONValue = raw
+        found = True
+        for part in parts:
+            if not isinstance(current, dict) or part not in current:
+                found = False
+                break
+            current = current[part]
+        if found:
+            values.append(current)
+    return values
+
+
+def _set_nested_value(
+    data: JSONValue,
+    field_path: str,
+    value: JSONValue,
+) -> JSONValue:
+    if not isinstance(data, dict):
+        return data
+    parts = field_path.split(".")
+    if len(parts) == 1:
+        result = dict(data)
+        result[parts[0]] = value
+        return result
+    key = parts[0]
+    rest = ".".join(parts[1:])
+    result = dict(data)
+    if key in result:
+        result[key] = _set_nested_value(result[key], rest, value)
+    return result
+
+
 def _merge_raw_dicts(
     *,
     raw_dicts: list[JSONValue],
     strategy: MergeStrategy,
     dataclass_name: str,
     field_merge_map: dict[str, FieldMergeStrategy] | None = None,
+    callable_merge_map: dict[str, FieldMergeCallable] | None = None,
     secret_paths: frozenset[str] = frozenset(),
 ) -> JSONValue:
     merged: JSONValue = {}
@@ -192,6 +232,14 @@ def _merge_raw_dicts(
             after=merged,
             secret_paths=secret_paths,
         )
+
+    if callable_merge_map:
+        for field_path, merge_fn in callable_merge_map.items():
+            values = _collect_field_values(raw_dicts, field_path)
+            if not values:
+                continue
+            aggregated = merge_fn(values)
+            merged = _set_nested_value(merged, field_path, aggregated)
 
     return merged
 
@@ -223,9 +271,7 @@ def _load_and_merge[T: DataclassInstance](  # noqa: C901
         secret_paths=secret_paths,
     )
 
-    field_merge_map: dict[str, FieldMergeStrategy] | None = None
-    if merge_meta.field_merges:
-        field_merge_map = build_field_merge_map(merge_meta.field_merges, dataclass_)
+    merge_maps = build_field_merge_map(merge_meta.field_merges, dataclass_)
 
     field_group_paths: tuple[ResolvedFieldGroup, ...] = ()
     if merge_meta.field_groups:
@@ -241,13 +287,20 @@ def _load_and_merge[T: DataclassInstance](  # noqa: C901
         )
 
     if merge_meta.strategy == MergeStrategy.RAISE_ON_CONFLICT:
-        raise_on_conflict(loaded.raw_dicts, loaded.source_ctxs, dataclass_.__name__, field_merge_map=field_merge_map)
+        raise_on_conflict(
+            loaded.raw_dicts,
+            loaded.source_ctxs,
+            dataclass_.__name__,
+            field_merge_map=merge_maps.enum_map or None,
+            callable_merge_paths=merge_maps.callable_paths or None,
+        )
 
     merged = _merge_raw_dicts(
         raw_dicts=loaded.raw_dicts,
         strategy=merge_meta.strategy,
         dataclass_name=dataclass_.__name__,
-        field_merge_map=field_merge_map,
+        field_merge_map=merge_maps.enum_map or None,
+        callable_merge_map=merge_maps.callable_map or None,
         secret_paths=secret_paths,
     )
 

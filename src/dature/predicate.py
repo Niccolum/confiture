@@ -2,15 +2,27 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import TYPE_CHECKING, get_type_hints
 
 from dature.field_path import FieldPath, _resolve_field_type, validate_field_path_owner
+from dature.metadata import FieldMergeStrategy
 from dature.protocols import DataclassInstance
 
 if TYPE_CHECKING:
-    from dature.metadata import FieldGroup, FieldMergeStrategy, MergeRule
+    from dature.metadata import FieldGroup, MergeRule
+    from dature.types import FieldMergeCallable
 
 
 @dataclass(frozen=True, slots=True)
 class ResolvedFieldGroup:
     paths: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FieldMergeMaps:
+    enum_map: "dict[str, FieldMergeStrategy]"
+    callable_map: "dict[str, FieldMergeCallable]"
+
+    @property
+    def callable_paths(self) -> frozenset[str]:
+        return frozenset(self.callable_map.keys())
 
 
 def extract_field_path(predicate: object, dataclass_: type[DataclassInstance] | None = None) -> str:
@@ -25,12 +37,16 @@ def extract_field_path(predicate: object, dataclass_: type[DataclassInstance] | 
 def build_field_merge_map(
     field_merges: "tuple[MergeRule, ...]",
     dataclass_: type[DataclassInstance] | None = None,
-) -> "dict[str, FieldMergeStrategy]":
-    result: dict[str, FieldMergeStrategy] = {}
+) -> FieldMergeMaps:
+    enum_map: dict[str, FieldMergeStrategy] = {}
+    callable_map: dict[str, FieldMergeCallable] = {}
     for rule in field_merges:
         path = extract_field_path(rule.predicate, dataclass_)
-        result[path] = rule.strategy
-    return result
+        if isinstance(rule.strategy, FieldMergeStrategy):
+            enum_map[path] = rule.strategy
+        else:
+            callable_map[path] = rule.strategy
+    return FieldMergeMaps(enum_map=enum_map, callable_map=callable_map)
 
 
 def _expand_dataclass_fields(prefix: str, dc_type: type) -> list[str]:

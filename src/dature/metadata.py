@@ -7,7 +7,14 @@ from dature.loader_resolver import resolve_loader_class
 if TYPE_CHECKING:
     from dature.field_path import FieldPath
     from dature.protocols import LoaderProtocol, ValidatorProtocol
-    from dature.types import DotSeparatedPath, ExpandEnvVarsMode, FieldMapping, FieldValidators, NameStyle
+    from dature.types import (
+        DotSeparatedPath,
+        ExpandEnvVarsMode,
+        FieldMapping,
+        FieldMergeCallable,
+        FieldValidators,
+        NameStyle,
+    )
 
 
 class MergeStrategy(StrEnum):
@@ -23,8 +30,6 @@ class FieldMergeStrategy(StrEnum):
     APPEND_UNIQUE = "append_unique"
     PREPEND = "prepend"
     PREPEND_UNIQUE = "prepend_unique"
-    MAX = "max"
-    MIN = "min"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -54,7 +59,7 @@ class LoadMetadata:
 @dataclass(frozen=True, slots=True)
 class MergeRule:
     predicate: object
-    strategy: FieldMergeStrategy
+    strategy: "FieldMergeStrategy | FieldMergeCallable"
 
 
 @dataclass(frozen=True, slots=True)

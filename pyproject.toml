@@ -112,9 +112,6 @@ pythonpath = [
     "src",
 ]
 
-[tool.uv.sources]
-toml-rs = { git = "https://github.com/lava-sh/toml-rs", branch = "metadata" }
-
 [dependency-groups]
 dev = [
     "mypy>=1.19.1",

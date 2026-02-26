@@ -105,7 +105,10 @@ class EnvFileLoader(EnvLoader):
 
                 key, value = line.split("=", 1)
                 key = key.strip()
-                value = value.strip().strip('"').strip("'")
+                value = value.strip()
+                _min_quoted_len = 2
+                if len(value) >= _min_quoted_len and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
                 self._pre_processed_row(key=key, value=value, result=env_vars)
 
         return env_vars

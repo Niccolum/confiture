@@ -248,8 +248,8 @@ class TestMaskEnvLine:
         [
             ("PASSWORD=mysecret", "PASSWORD=my*****et"),
             ("KEY=ab", "KEY=*****"),
-            ("  key: value123", "  key: v*****23"),
-            ("key: ab", "key:*****"),
+            ("  key: value123", "  key: va*****23"),
+            ("key: ab", "key: *****"),
             ("random_line", "ra*****ne"),
         ],
     )

@@ -166,6 +166,48 @@ class TestResolveSourceLocation:
         assert loc.line_range == LineRange(start=2, end=2)
         assert loc.line_content == ["APP_TIMEOUT=30"]
 
+    def test_file_source_does_not_mask_non_secret_field(self):
+        content = '{\n  "password": "secret123",\n  "timeout": "30"\n}'
+        ctx = ErrorContext(
+            dataclass_name="Config",
+            loader_type="json",
+            file_path=Path("config.json"),
+            prefix=None,
+            split_symbols="__",
+            path_finder_class=JsonPathFinder,
+            secret_paths=frozenset({"password"}),
+        )
+        loc = resolve_source_location(["timeout"], ctx, file_content=content)
+        assert loc.line_content == ['"timeout": "30"']
+
+    def test_file_source_masks_secret_field(self):
+        content = '{\n  "password": "secret123",\n  "timeout": "30"\n}'
+        ctx = ErrorContext(
+            dataclass_name="Config",
+            loader_type="json",
+            file_path=Path("config.json"),
+            prefix=None,
+            split_symbols="__",
+            path_finder_class=JsonPathFinder,
+            secret_paths=frozenset({"password"}),
+        )
+        loc = resolve_source_location(["password"], ctx, file_content=content)
+        assert loc.line_content == ['"password": "se*****23",']
+
+    def test_file_source_masks_line_when_secret_on_same_line(self):
+        content = '{"password": "secret123", "timeout": "30"}'
+        ctx = ErrorContext(
+            dataclass_name="Config",
+            loader_type="json",
+            file_path=Path("config.json"),
+            prefix=None,
+            split_symbols="__",
+            path_finder_class=JsonPathFinder,
+            secret_paths=frozenset({"password"}),
+        )
+        loc = resolve_source_location(["timeout"], ctx, file_content=content)
+        assert loc.line_content == ['{"password": "se*****23", "timeout": "30"}']
+
 
 class TestDatureConfigErrorFormat:
     def test_single_error_message(self):

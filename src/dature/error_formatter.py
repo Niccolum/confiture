@@ -228,6 +228,27 @@ def _resolve_file_location(
     )
 
 
+def _ranges_overlap(a: LineRange, b: LineRange) -> bool:
+    return a.start <= b.end and b.start <= a.end
+
+
+def _secret_overlaps_lines(
+    *,
+    file_content: str,
+    line_range: LineRange,
+    secret_paths: frozenset[str],
+    prefix: str | None,
+    path_finder_class: type[PathFinder],
+) -> bool:
+    finder = path_finder_class(file_content)
+    for secret_path in secret_paths:
+        search_path = _build_search_path(secret_path.split("."), prefix)
+        secret_range = finder.find_line_range(search_path)
+        if secret_range is not None and _ranges_overlap(line_range, secret_range):
+            return True
+    return False
+
+
 def resolve_source_location(
     field_path: list[str],
     ctx: ErrorContext,
@@ -275,7 +296,22 @@ def resolve_source_location(
         prefix=ctx.prefix,
         path_finder_class=ctx.path_finder_class,
     )
-    if ctx.secret_paths and location.line_content is not None:
+    should_mask = is_secret
+    if (
+        not should_mask
+        and ctx.secret_paths
+        and location.line_range is not None
+        and ctx.path_finder_class is not None
+        and file_content is not None
+    ):
+        should_mask = _secret_overlaps_lines(
+            file_content=file_content,
+            line_range=location.line_range,
+            secret_paths=ctx.secret_paths,
+            prefix=ctx.prefix,
+            path_finder_class=ctx.path_finder_class,
+        )
+    if should_mask and location.line_content is not None:
         masked_lines = [mask_env_line(line) for line in location.line_content]
         return SourceLocation(
             source_type=location.source_type,

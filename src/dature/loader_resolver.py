@@ -10,8 +10,26 @@ if TYPE_CHECKING:
 
 SUPPORTED_EXTENSIONS = (".cfg", ".env", ".ini", ".json", ".json5", ".toml", ".yaml", ".yml")
 
+_EXTRA_BY_EXTENSION: dict[str, str] = {
+    ".toml": "toml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".json5": "json5",
+}
+
 
 def _resolve_by_extension(extension: str) -> "type[LoaderProtocol]":
+    try:
+        return _resolve_by_extension_inner(extension)
+    except ImportError:
+        extra = _EXTRA_BY_EXTENSION.get(extension)
+        if extra is None:
+            raise
+        msg = f"To use '{extension}' files, install the '{extra}' extra: pip install dature[{extra}]"
+        raise ImportError(msg) from None
+
+
+def _resolve_by_extension_inner(extension: str) -> "type[LoaderProtocol]":
     match extension:
         case ".json":
             return JsonLoader

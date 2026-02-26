@@ -57,3 +57,29 @@ class TestResolveLoaderClass:
 
     def test_env_file_loader_with_file_allowed(self) -> None:
         assert resolve_loader_class(loader=EnvFileLoader, file_=".env.local") is EnvFileLoader
+
+
+class TestMissingOptionalDependency:
+    @pytest.mark.parametrize(
+        ("extension", "extra", "blocked_module"),
+        [
+            (".toml", "toml", "toml_rs"),
+            (".yaml", "yaml", "ruamel"),
+            (".yml", "yaml", "ruamel"),
+            (".json5", "json5", "json5"),
+        ],
+    )
+    def test_missing_extra_raises_helpful_error(
+        self,
+        extension,
+        extra,
+        blocked_module,
+        block_import,
+    ) -> None:
+        with block_import(blocked_module):
+            with pytest.raises(ImportError) as exc_info:
+                resolve_loader_class(loader=None, file_=f"config{extension}")
+
+            assert str(exc_info.value) == (
+                f"To use '{extension}' files, install the '{extra}' extra: pip install dature[{extra}]"
+            )

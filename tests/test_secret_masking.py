@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from unittest.mock import patch
 
 import pytest
@@ -397,5 +397,24 @@ class TestSecretMaskingIntegration:
 
         with pytest.raises(DatureConfigError) as exc_info:
             load(LoadMetadata(file_=str(json_file)), Cfg)
+
+        assert _SECRET_VALUE not in str(exc_info.value)
+
+    def test_merge_decorator_error_message_masks_secrets(self, tmp_path: Path):
+        json_file = tmp_path / "config.json"
+        json_file.write_text('{"password": "allowed", "host": "prod"}')
+
+        meta = MergeMetadata(
+            sources=(LoadMetadata(file_=str(json_file)),),
+        )
+
+        @load(meta)
+        @dataclass
+        class Cfg:
+            password: Literal["allowed"]
+            host: str
+
+        with pytest.raises(DatureConfigError) as exc_info:
+            Cfg(password=_SECRET_VALUE)
 
         assert _SECRET_VALUE not in str(exc_info.value)

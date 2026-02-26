@@ -421,8 +421,13 @@ class _MergePatchContext:
         validating_retort = last_loader.create_validating_retort(cls)
         self.validation_loader: Callable[[JSONValue], DataclassInstance] = validating_retort.get_loader(cls)
 
+        self.secret_paths: frozenset[str] = frozenset()
+        if merge_meta.mask_secrets:
+            extra_patterns = _collect_extra_secret_patterns(merge_meta)
+            self.secret_paths = build_secret_paths(cls, extra_patterns=extra_patterns)
+
         last_meta = merge_meta.sources[-1]
-        self.error_ctx = build_error_ctx(last_meta, cls.__name__)
+        self.error_ctx = build_error_ctx(last_meta, cls.__name__, secret_paths=self.secret_paths)
 
     @staticmethod
     def _prepare_loaders(

@@ -1,32 +1,38 @@
-name: Version Bump (Patch)
+name: Version Bump
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions: {}
 
-concurrency:
-  group: version-bump
-  cancel-in-progress: false
-
 jobs:
-  bump-patch:
-    if: "!startsWith(github.event.head_commit.message, 'chore: bump version to')"
+  bump-version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          token: ${{ secrets.PAT }}
 
-      - name: Bump patch version
+      - name: Bump version
         id: bump
         shell: python
+        env:
+          BUMP_TYPE: ${{ inputs.bump_type }}
         run: |
           import os
           import re
+
+          bump_type = os.environ["BUMP_TYPE"]
 
           with open("pyproject.toml") as f:
               content = f.read()
@@ -36,7 +42,15 @@ jobs:
               raise ValueError("Could not find version in pyproject.toml")
 
           major, minor, patch = int(match.group(1)), int(match.group(2)), int(match.group(3))
-          new_version = f"{major}.{minor}.{patch + 1}"
+
+          if bump_type == "patch":
+              new_version = f"{major}.{minor}.{patch + 1}"
+          elif bump_type == "minor":
+              new_version = f"{major}.{minor + 1}.0"
+          elif bump_type == "major":
+              new_version = f"{major + 1}.0.0"
+          else:
+              raise ValueError(f"Unknown bump type: {bump_type}")
 
           new_content = re.sub(
               r'^version = "\d+\.\d+\.\d+"',
@@ -52,34 +66,22 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"new_version={new_version}\n")
 
-      - name: Commit via GitHub API
+      - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          BRANCH="chore/bump-version-to-$NEW_VERSION"
 
-          BLOB_SHA=$(gh api repos/${{ github.repository }}/git/blobs \
-            -f content="$(base64 < pyproject.toml)" \
-            -f encoding=base64 \
-            --jq '.sha')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add pyproject.toml
+          git commit -m "chore: bump version to $NEW_VERSION"
+          git push origin "$BRANCH"
 
-          BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/${{ github.sha }} \
-            --jq '.tree.sha')
-
-          TREE_SHA=$(gh api repos/${{ github.repository }}/git/trees \
-            -f "tree[0][path]=pyproject.toml" \
-            -f "tree[0][mode]=100644" \
-            -f "tree[0][type]=blob" \
-            -f "tree[0][sha]=$BLOB_SHA" \
-            -f "base_tree=$BASE_TREE" \
-            --jq '.sha')
-
-          COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
-            -f "message=chore: bump version to $NEW_VERSION" \
-            -f "tree=$TREE_SHA" \
-            -f "parents[]=${{ github.sha }}" \
-            --jq '.sha')
-
-          gh api repos/${{ github.repository }}/git/refs/heads/main \
-            -X PATCH \
-            -f "sha=$COMMIT_SHA"
+          gh pr create \
+            --title "chore: bump version to $NEW_VERSION" \
+            --body "Automated ${{ inputs.bump_type }} version bump: → **$NEW_VERSION**" \
+            --base main \
+            --head "$BRANCH"

@@ -52,10 +52,34 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"new_version={new_version}\n")
 
-      - name: Commit and push
+      - name: Commit via GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
-          git push
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+
+          BLOB_SHA=$(gh api repos/${{ github.repository }}/git/blobs \
+            -f content="$(base64 < pyproject.toml)" \
+            -f encoding=base64 \
+            --jq '.sha')
+
+          BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/${{ github.sha }} \
+            --jq '.tree.sha')
+
+          TREE_SHA=$(gh api repos/${{ github.repository }}/git/trees \
+            -f "tree[0][path]=pyproject.toml" \
+            -f "tree[0][mode]=100644" \
+            -f "tree[0][type]=blob" \
+            -f "tree[0][sha]=$BLOB_SHA" \
+            -f "base_tree=$BASE_TREE" \
+            --jq '.sha')
+
+          COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
+            -f "message=chore: bump version to $NEW_VERSION" \
+            -f "tree=$TREE_SHA" \
+            -f "parents[]=${{ github.sha }}" \
+            --jq '.sha')
+
+          gh api repos/${{ github.repository }}/git/refs/heads/main \
+            -X PATCH \
+            -f "sha=$COMMIT_SHA"

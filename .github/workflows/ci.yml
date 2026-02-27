@@ -149,13 +149,16 @@ jobs:
 
       - name: Check version change and create tag
         id: create-tag
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
 
           if ! git tag -l "v$VERSION" | grep -q .; then
             echo "Tag v$VERSION does not exist, creating"
-            git tag "v$VERSION"
-            git push origin "v$VERSION"
+            gh api "repos/${{ github.repository }}/git/refs" \
+              -f "ref=refs/tags/v$VERSION" \
+              -f "sha=${{ github.sha }}"
             echo "tagged=true" >> "$GITHUB_OUTPUT"
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           else

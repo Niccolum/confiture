@@ -3,6 +3,7 @@ from typing import Any
 from dature.loader_resolver import resolve_loader_class
 from dature.metadata import LoadMetadata
 from dature.protocols import LoaderProtocol
+from dature.sources_loader.docker_secrets import DockerSecretsLoader
 from dature.sources_loader.env_ import EnvLoader
 from dature.types import ExpandEnvVarsMode
 
@@ -25,7 +26,7 @@ def resolve_loader(
         "expand_env_vars": resolved_expand,
     }
 
-    if issubclass(loader_class, EnvLoader):
+    if issubclass(loader_class, (EnvLoader, DockerSecretsLoader)):
         kwargs["split_symbols"] = metadata.split_symbols
 
     return loader_class(**kwargs)

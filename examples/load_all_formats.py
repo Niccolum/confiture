@@ -5,6 +5,7 @@ from pathlib import Path
 from all_types_dataclass import AllPythonTypesCompact  # type: ignore[import-not-found]
 
 from dature import LoadMetadata, load
+from dature.sources_loader.docker_secrets import DockerSecretsLoader
 from dature.sources_loader.toml_ import Toml10Loader
 from dature.sources_loader.yaml_ import Yaml11Loader, Yaml12Loader
 
@@ -19,6 +20,10 @@ FORMATS = {
     "yaml11": LoadMetadata(file_=str(SOURCES_DIR / "all_types_yaml11.yaml"), loader=Yaml11Loader),
     "yaml12": LoadMetadata(file_=str(SOURCES_DIR / "all_types_yaml12.yaml"), loader=Yaml12Loader),
     "env": LoadMetadata(file_=str(SOURCES_DIR / "all_types.env")),
+    "docker_secrets": LoadMetadata(
+        file_=str(SOURCES_DIR / "all_types_docker_secrets"),
+        loader=DockerSecretsLoader,
+    ),
 }
 
 for name, meta in FORMATS.items():

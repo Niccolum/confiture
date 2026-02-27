@@ -288,6 +288,19 @@ def resolve_source_location(
             env_var_name=env_var_name,
         )
 
+    if ctx.loader_type == "docker_secrets":
+        secret_name = ctx.split_symbols.join(field_path)
+        if ctx.prefix is not None:
+            secret_name = ctx.prefix + secret_name
+        secret_file = ctx.file_path / secret_name if ctx.file_path is not None else None
+        return SourceLocation(
+            source_type="docker_secrets",
+            file_path=secret_file,
+            line_range=None,
+            line_content=None,
+            env_var_name=None,
+        )
+
     location = _resolve_file_location(
         field_path=field_path,
         loader_type=ctx.loader_type,

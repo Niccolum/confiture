@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dature.sources_loader.docker_secrets import DockerSecretsLoader
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json_ import JsonLoader
@@ -75,6 +76,9 @@ def resolve_loader_class(
         return EnvLoader
 
     file_path = Path(file_)
+
+    if file_path.is_dir():
+        return DockerSecretsLoader
 
     if file_path.name.startswith(".env"):
         return EnvFileLoader

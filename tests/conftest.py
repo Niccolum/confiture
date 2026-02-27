@@ -167,6 +167,13 @@ def all_types_ini_file(examples_dir: Path) -> Path:
     return examples_dir / "sources" / "all_types.ini"
 
 
+# Docker secrets fixtures
+@pytest.fixture
+def all_types_docker_secrets_dir(examples_dir: Path) -> Path:
+    """Path to all_types_docker_secrets directory."""
+    return examples_dir / "sources" / "all_types_docker_secrets"
+
+
 @pytest.fixture
 def _clean_dature_modules() -> Generator[None]:
     removed: dict[str, object] = {}

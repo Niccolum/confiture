@@ -1,6 +1,6 @@
 # dature
 
-Type-safe configuration loader for Python dataclasses. Load config from YAML, JSON, TOML, INI, ENV files and environment variables with automatic type conversion, validation, and human-readable error messages.
+Type-safe configuration loader for Python dataclasses. Load config from YAML, JSON, TOML, INI, ENV files, environment variables, and Docker secrets with automatic type conversion, validation, and human-readable error messages.
 
 ## Installation
 
@@ -35,6 +35,9 @@ config = load(LoadMetadata(file_="config.yaml"), Config)
 # From environment variables
 config = load(LoadMetadata(prefix="APP_"), Config)
 
+# From Docker secrets (/run/secrets/ or any directory)
+config = load(LoadMetadata(file_="/run/secrets/"), Config)
+
 # As a decorator (auto-loads on instantiation)
 @load(LoadMetadata(file_="config.yaml"))
 @dataclass
@@ -59,8 +62,9 @@ config = Config(port=9090)  # override specific fields
 | INI | `.ini`, `.cfg` | `IniLoader` | - |
 | ENV file | `.env` | `EnvFileLoader` | - |
 | Environment variables | - | `EnvLoader` | - |
+| Docker secrets | directory | `DockerSecretsLoader` | - |
 
-The format is auto-detected from the file extension. When `file_` is not specified, environment variables are used. You can also set the loader explicitly:
+The format is auto-detected from the file extension. When `file_` is not specified, environment variables are used. When `file_` points to a directory, `DockerSecretsLoader` is used. You can also set the loader explicitly:
 
 ```python
 from dature.sources_loader.json_ import JsonLoader
@@ -102,7 +106,7 @@ db = load(LoadMetadata(file_="config.yaml", prefix="app.database"), Database)
 
 ### split_symbols
 
-Delimiter for building nested structures from flat ENV variables. Default: `"__"`.
+Delimiter for building nested structures from flat ENV variables and Docker secrets file names. Default: `"__"`.
 
 ```bash
 APP_DB__HOST=localhost
@@ -1082,6 +1086,15 @@ Config loading errors (2)
 
   [port]  Expected int, got str
    └── ENV 'APP_PORT'
+```
+
+Docker secrets errors point to the secret file:
+
+```
+Config loading errors (1)
+
+  [password]  Missing required field
+   └── SECRET FILE '/run/secrets/password'
 ```
 
 Merge conflicts:

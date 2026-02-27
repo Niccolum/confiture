@@ -69,6 +69,8 @@ jobs:
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.PAT }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
           BRANCH="chore/bump-version-to-$NEW_VERSION"

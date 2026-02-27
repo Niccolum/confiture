@@ -55,31 +55,38 @@ jobs:
       - name: Commit via GitHub API
         env:
           GH_TOKEN: ${{ secrets.PAT }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          CONTENT=$(base64 < pyproject.toml)
 
-          BLOB_SHA=$(gh api repos/${{ github.repository }}/git/blobs \
-            -f content="$(base64 < pyproject.toml)" \
+          BLOB_SHA=$(gh api "repos/$REPO/git/blobs" \
+            -f content="$CONTENT" \
             -f encoding=base64 \
             --jq '.sha')
 
-          BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/${{ github.sha }} \
-            --jq '.tree.sha')
+          BASE_TREE=$(gh api "repos/$REPO/git/commits/$HEAD_SHA" --jq '.tree.sha')
 
-          TREE_SHA=$(gh api repos/${{ github.repository }}/git/trees \
-            -f "tree[0][path]=pyproject.toml" \
-            -f "tree[0][mode]=100644" \
-            -f "tree[0][type]=blob" \
-            -f "tree[0][sha]=$BLOB_SHA" \
-            -f "base_tree=$BASE_TREE" \
-            --jq '.sha')
+          TREE_SHA=$(gh api "repos/$REPO/git/trees" \
+            --input - <<EOF | jq -r '.sha'
+          {
+            "base_tree": "$BASE_TREE",
+            "tree": [{"path": "pyproject.toml", "mode": "100644", "type": "blob", "sha": "$BLOB_SHA"}]
+          }
+          EOF
+          )
 
-          COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
-            -f "message=chore: bump version to $NEW_VERSION" \
-            -f "tree=$TREE_SHA" \
-            -f "parents[]=${{ github.sha }}" \
-            --jq '.sha')
+          COMMIT_SHA=$(gh api "repos/$REPO/git/commits" \
+            --input - <<EOF | jq -r '.sha'
+          {
+            "message": "chore: bump version to $NEW_VERSION",
+            "tree": "$TREE_SHA",
+            "parents": ["$HEAD_SHA"]
+          }
+          EOF
+          )
 
-          gh api repos/${{ github.repository }}/git/refs/heads/main \
+          gh api "repos/$REPO/git/refs/heads/main" \
             -X PATCH \
             -f "sha=$COMMIT_SHA"

@@ -1,7 +1,11 @@
 """Pytest configuration and shared fixtures."""
 
-from collections.abc import Callable
+import builtins
+import sys
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from adaptix.load_error import ValidationLoadError
@@ -129,6 +133,21 @@ def all_types_toml11_file(examples_dir: Path) -> Path:
     return examples_dir / "sources" / "all_types_toml11.toml"
 
 
+@pytest.fixture
+def array_of_tables_toml_file(fixtures_dir: Path) -> Path:
+    return fixtures_dir / "array_of_tables.toml"
+
+
+@pytest.fixture
+def array_of_tables_error_first_toml_file(fixtures_dir: Path) -> Path:
+    return fixtures_dir / "array_of_tables_error_first.toml"
+
+
+@pytest.fixture
+def array_of_tables_error_last_toml_file(fixtures_dir: Path) -> Path:
+    return fixtures_dir / "array_of_tables_error_last.toml"
+
+
 # INI fixtures
 @pytest.fixture
 def ini_sections_file(fixtures_dir: Path) -> Path:
@@ -146,3 +165,36 @@ def prefixed_ini_file(fixtures_dir: Path) -> Path:
 def all_types_ini_file(examples_dir: Path) -> Path:
     """Path to all_types.ini file."""
     return examples_dir / "sources" / "all_types.ini"
+
+
+# Docker secrets fixtures
+@pytest.fixture
+def all_types_docker_secrets_dir(examples_dir: Path) -> Path:
+    """Path to all_types_docker_secrets directory."""
+    return examples_dir / "sources" / "all_types_docker_secrets"
+
+
+@pytest.fixture
+def _clean_dature_modules() -> Generator[None]:
+    removed: dict[str, object] = {}
+    for key in list(sys.modules):
+        if key.startswith("dature."):
+            removed[key] = sys.modules.pop(key)
+    yield
+    sys.modules.update(removed)
+
+
+@pytest.fixture
+def block_import(_clean_dature_modules: None) -> Callable[[str], AbstractContextManager[None]]:
+    real_import = builtins.__import__
+
+    def _block(module_name: str) -> AbstractContextManager[None]:
+        def _blocker(name: str, *args: object, **kwargs: object) -> object:
+            if name == module_name or name.startswith(module_name + "."):
+                msg = f"No module named '{module_name}'"
+                raise ImportError(msg)
+            return real_import(name, *args, **kwargs)
+
+        return patch("builtins.__import__", side_effect=_blocker)  # type: ignore[return-value]
+
+    return _block

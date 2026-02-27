@@ -1,0 +1,7 @@
+[[product]]
+name = "Hammer"
+sku = 738594937
+
+[[product]]
+name = "Nail"
+sku = "not_a_number"

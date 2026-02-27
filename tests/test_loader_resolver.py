@@ -1,6 +1,7 @@
 import pytest
 
 from dature.loader_resolver import resolve_loader_class
+from dature.sources_loader.docker_secrets import DockerSecretsLoader
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json5_ import Json5Loader
@@ -57,3 +58,32 @@ class TestResolveLoaderClass:
 
     def test_env_file_loader_with_file_allowed(self) -> None:
         assert resolve_loader_class(loader=EnvFileLoader, file_=".env.local") is EnvFileLoader
+
+    def test_directory_returns_docker_secrets(self, tmp_path) -> None:
+        assert resolve_loader_class(loader=None, file_=str(tmp_path)) is DockerSecretsLoader
+
+
+class TestMissingOptionalDependency:
+    @pytest.mark.parametrize(
+        ("extension", "extra", "blocked_module"),
+        [
+            (".toml", "toml", "toml_rs"),
+            (".yaml", "yaml", "ruamel"),
+            (".yml", "yaml", "ruamel"),
+            (".json5", "json5", "json5"),
+        ],
+    )
+    def test_missing_extra_raises_helpful_error(
+        self,
+        extension,
+        extra,
+        blocked_module,
+        block_import,
+    ) -> None:
+        with block_import(blocked_module):
+            with pytest.raises(ImportError) as exc_info:
+                resolve_loader_class(loader=None, file_=f"config{extension}")
+
+            assert str(exc_info.value) == (
+                f"To use '{extension}' files, install the '{extra}' extra: pip install dature[{extra}]"
+            )

@@ -75,6 +75,21 @@ class TestToml10FindLineRange:
 
         assert finder.find_line_range(["db", "host"]) == LineRange(start=1, end=1)
 
+    def test_array_of_tables_nested_key(self):
+        content = (
+            '[[product]]\nname = "Hammer"\nsku = 738594937\n\n'
+            "[[product]]\n\n"
+            '[[product]]\nname = "Nail"\nsku = 284758393\n\n'
+            'color = "gray"\n'
+        )
+        finder = Toml10PathFinder(content)
+
+        assert finder.find_line_range(["product", "0", "name"]) == LineRange(start=2, end=2)
+        assert finder.find_line_range(["product", "0", "sku"]) == LineRange(start=3, end=3)
+        assert finder.find_line_range(["product", "2", "name"]) == LineRange(start=8, end=8)
+        assert finder.find_line_range(["product", "2", "sku"]) == LineRange(start=9, end=9)
+        assert finder.find_line_range(["product", "2", "color"]) == LineRange(start=11, end=11)
+
 
 class TestToml11FindLineRange:
     def test_key_after_multiline_double_quotes(self):

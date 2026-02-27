@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from examples.all_types_dataclass import EXPECTED_ALL_TYPES, AllPythonTypesCompact
 from tests.sources_loader.checker import assert_all_types_equal
@@ -103,6 +105,33 @@ class TestEnvFileLoader:
         result = loader.load(env_file, Config)
 
         assert result.value == "prefixreplaced/suffix"
+
+    @pytest.mark.parametrize(
+        ("raw_value", "expected"),
+        [
+            ('"hello"', "hello"),
+            ("'hello'", "hello"),
+            ('""hello""', '"hello"'),
+            ("''hello''", "'hello'"),
+            ("\"'hello'\"", "'hello'"),
+            ("'\"hello\"'", '"hello"'),
+            ("\"hello'", "\"hello'"),
+            ("'hello\"", "'hello\""),
+            ("hello", "hello"),
+            ('""', ""),
+            ("''", ""),
+            ('"', '"'),
+            ("'", "'"),
+        ],
+    )
+    def test_quote_stripping(self, tmp_path: Path, raw_value: str, expected: str):
+        env_file = tmp_path / ".env"
+        env_file.write_text(f"value={raw_value}")
+
+        loader = EnvFileLoader()
+        data = loader._load(env_file)
+
+        assert data == {"value": expected}
 
     def test_env_file_dollar_sign_mid_string_missing_var(self, tmp_path: Path, monkeypatch):
         monkeypatch.delenv("nonexistent", raising=False)

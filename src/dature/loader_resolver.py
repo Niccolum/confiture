@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dature.sources_loader.docker_secrets import DockerSecretsLoader
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json_ import JsonLoader
@@ -10,8 +11,26 @@ if TYPE_CHECKING:
 
 SUPPORTED_EXTENSIONS = (".cfg", ".env", ".ini", ".json", ".json5", ".toml", ".yaml", ".yml")
 
+_EXTRA_BY_EXTENSION: dict[str, str] = {
+    ".toml": "toml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".json5": "json5",
+}
+
 
 def _resolve_by_extension(extension: str) -> "type[LoaderProtocol]":
+    try:
+        return _resolve_by_extension_inner(extension)
+    except ImportError:
+        extra = _EXTRA_BY_EXTENSION.get(extension)
+        if extra is None:
+            raise
+        msg = f"To use '{extension}' files, install the '{extra}' extra: pip install dature[{extra}]"
+        raise ImportError(msg) from None
+
+
+def _resolve_by_extension_inner(extension: str) -> "type[LoaderProtocol]":
     match extension:
         case ".json":
             return JsonLoader
@@ -57,6 +76,9 @@ def resolve_loader_class(
         return EnvLoader
 
     file_path = Path(file_)
+
+    if file_path.is_dir():
+        return DockerSecretsLoader
 
     if file_path.name.startswith(".env"):
         return EnvFileLoader

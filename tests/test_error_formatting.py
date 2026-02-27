@@ -166,6 +166,48 @@ class TestResolveSourceLocation:
         assert loc.line_range == LineRange(start=2, end=2)
         assert loc.line_content == ["APP_TIMEOUT=30"]
 
+    def test_file_source_does_not_mask_non_secret_field(self):
+        content = '{\n  "password": "secret123",\n  "timeout": "30"\n}'
+        ctx = ErrorContext(
+            dataclass_name="Config",
+            loader_type="json",
+            file_path=Path("config.json"),
+            prefix=None,
+            split_symbols="__",
+            path_finder_class=JsonPathFinder,
+            secret_paths=frozenset({"password"}),
+        )
+        loc = resolve_source_location(["timeout"], ctx, file_content=content)
+        assert loc.line_content == ['"timeout": "30"']
+
+    def test_file_source_masks_secret_field(self):
+        content = '{\n  "password": "secret123",\n  "timeout": "30"\n}'
+        ctx = ErrorContext(
+            dataclass_name="Config",
+            loader_type="json",
+            file_path=Path("config.json"),
+            prefix=None,
+            split_symbols="__",
+            path_finder_class=JsonPathFinder,
+            secret_paths=frozenset({"password"}),
+        )
+        loc = resolve_source_location(["password"], ctx, file_content=content)
+        assert loc.line_content == ['"password": "se*****23",']
+
+    def test_file_source_masks_line_when_secret_on_same_line(self):
+        content = '{"password": "secret123", "timeout": "30"}'
+        ctx = ErrorContext(
+            dataclass_name="Config",
+            loader_type="json",
+            file_path=Path("config.json"),
+            prefix=None,
+            split_symbols="__",
+            path_finder_class=JsonPathFinder,
+            secret_paths=frozenset({"password"}),
+        )
+        loc = resolve_source_location(["timeout"], ctx, file_content=content)
+        assert loc.line_content == ['{"password": "se*****23", "timeout": "30"}']
+
 
 class TestDatureConfigErrorFormat:
     def test_single_error_message(self):
@@ -726,4 +768,75 @@ class TestMultilineValueDisplay:
                    "tags": [
                      "a",
                    ...
+            """)
+
+    def test_toml_array_of_tables_success(self, array_of_tables_toml_file: Path):
+        @dataclass
+        class Product:
+            name: str
+            sku: int
+
+        @dataclass
+        class Config:
+            product: list[Product]
+
+        metadata = LoadMetadata(file_=str(array_of_tables_toml_file))
+        result = load(metadata, Config)
+
+        assert result == Config(
+            product=[
+                Product(name="Hammer", sku=738594937),
+                Product(name="Nail", sku=284758393),
+            ],
+        )
+
+    def test_toml_array_of_tables_error(self, array_of_tables_error_first_toml_file: Path):
+
+        @dataclass
+        class Product:
+            name: str
+            sku: int
+
+        @dataclass
+        class Config:
+            product: list[Product]
+
+        metadata = LoadMetadata(file_=str(array_of_tables_error_first_toml_file))
+
+        with pytest.raises(DatureConfigError) as exc_info:
+            load(metadata, Config)
+
+        err = exc_info.value
+        assert len(err.exceptions) == 1
+        assert str(err) == dedent(f"""\
+            Config loading errors (1)
+
+              [product.0.sku]  Bad string format
+               └── FILE '{array_of_tables_error_first_toml_file}', line 3
+                   sku = "not_a_number"
+            """)
+
+    def test_toml_array_of_tables_error_last_element(self, array_of_tables_error_last_toml_file: Path):
+        @dataclass
+        class Product:
+            name: str
+            sku: int
+
+        @dataclass
+        class Config:
+            product: list[Product]
+
+        metadata = LoadMetadata(file_=str(array_of_tables_error_last_toml_file))
+
+        with pytest.raises(DatureConfigError) as exc_info:
+            load(metadata, Config)
+
+        err = exc_info.value
+        assert len(err.exceptions) == 1
+        assert str(err) == dedent(f"""\
+            Config loading errors (1)
+
+              [product.1.sku]  Bad string format
+               └── FILE '{array_of_tables_error_last_toml_file}', line 7
+                   sku = "not_a_number"
             """)

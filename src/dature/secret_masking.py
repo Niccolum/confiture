@@ -187,10 +187,27 @@ def mask_json_value(
 def mask_env_line(line: str) -> str:
     for sep in ("=", ":"):
         if sep in line:
-            key, value = line.split(sep, 1)
-            return f"{key}{sep}{mask_value(value)}"
+            key, raw_value = line.split(sep, 1)
+            return f"{key}{sep}{_mask_raw_value(raw_value)}"
 
     return mask_value(line)
+
+
+def _mask_raw_value(raw: str) -> str:
+    stripped = raw.lstrip(" ")
+    leading_spaces = raw[: len(raw) - len(stripped)]
+
+    for quote in ('"', "'"):
+        if stripped.startswith(quote):
+            inner_start = 1
+            end_idx = stripped.find(quote, inner_start)
+            if end_idx == -1:
+                break
+            inner = stripped[inner_start:end_idx]
+            suffix = stripped[end_idx + 1 :]
+            return f"{leading_spaces}{quote}{mask_value(inner)}{quote}{suffix}"
+
+    return f"{leading_spaces}{mask_value(stripped)}"
 
 
 def mask_field_origins(

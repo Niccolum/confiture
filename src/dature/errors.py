@@ -60,6 +60,10 @@ def _format_location(loc: SourceLocation) -> list[str]:
             lines.extend(_format_content_lines(loc.line_content))
         return lines
 
+    if loc.source_type == "docker_secrets":
+        lines.append(f"   └── SECRET FILE '{loc.file_path}'")
+        return lines
+
     location_str = f"   └── FILE '{loc.file_path}'"
     if loc.line_range is not None:
         location_str += f", {loc.line_range!r}"

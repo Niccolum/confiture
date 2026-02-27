@@ -1,0 +1,1 @@
+{"users":[{"name":"Alice","role":"admin"},{"name":"Bob","role":"user"}],"teams":[{"name":"backend","size":5}]}

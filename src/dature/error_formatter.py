@@ -27,8 +27,8 @@ from dature.errors import (
     MissingEnvVarError,
     SourceLocation,
 )
+from dature.masking.masking import mask_env_line, mask_value
 from dature.path_finders.base import PathFinder
-from dature.secret_masking import mask_env_line, mask_value
 
 if TYPE_CHECKING:
     from dature.metadata import LoadMetadata

@@ -16,9 +16,10 @@ from dature.loading_context import (
     make_validating_post_init,
     merge_fields,
 )
+from dature.masking.detection import build_secret_paths
+from dature.masking.masking import mask_json_value
 from dature.metadata import LoadMetadata
 from dature.protocols import DataclassInstance, LoaderProtocol
-from dature.secret_masking import build_secret_paths, mask_json_value
 from dature.types import JSONValue
 
 if TYPE_CHECKING:

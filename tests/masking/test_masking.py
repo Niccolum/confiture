@@ -1,17 +1,15 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Literal
 from unittest.mock import patch
 
 import pytest
 
 from dature import LoadMetadata, MergeMetadata, get_load_report, load
 from dature.errors import DatureConfigError
-from dature.fields.payment_card import PaymentCardNumber
 from dature.fields.secret_str import SecretStr
 from dature.load_report import FieldOrigin, SourceEntry
-from dature.secret_masking import (
-    build_secret_paths,
+from dature.masking.masking import (
     mask_env_line,
     mask_field_origins,
     mask_json_value,
@@ -37,99 +35,6 @@ class TestMaskValue:
     )
     def test_mask_value(self, input_value, expected):
         assert mask_value(input_value) == expected
-
-
-class TestBuildSecretPaths:
-    def test_simple_secret_str(self):
-        @dataclass
-        class Cfg:
-            api_key: SecretStr
-            host: str
-
-        paths = build_secret_paths(Cfg)
-        assert paths == frozenset({"api_key"})
-
-    def test_payment_card_number(self):
-        @dataclass
-        class Cfg:
-            card: PaymentCardNumber
-            name: str
-
-        paths = build_secret_paths(Cfg)
-        assert paths == frozenset({"card"})
-
-    def test_name_based_detection(self):
-        @dataclass
-        class Cfg:
-            password: str
-            db_token: str
-            host: str
-
-        paths = build_secret_paths(Cfg)
-        assert paths == frozenset({"password", "db_token"})
-
-    def test_annotated_secret_str(self):
-        @dataclass
-        class Cfg:
-            key: Annotated[SecretStr, "some metadata"]
-            host: str
-
-        paths = build_secret_paths(Cfg)
-        assert paths == frozenset({"key"})
-
-    def test_optional_secret_str(self):
-        @dataclass
-        class Cfg:
-            key: SecretStr | None
-            host: str
-
-        paths = build_secret_paths(Cfg)
-        assert paths == frozenset({"key"})
-
-    def test_nested_dataclass(self):
-        @dataclass
-        class Inner:
-            secret: SecretStr
-            host: str
-
-        @dataclass
-        class Outer:
-            inner: Inner
-            name: str
-
-        paths = build_secret_paths(Outer)
-        assert paths == frozenset({"inner.secret"})
-
-    def test_nested_name_based(self):
-        @dataclass
-        class DbConfig:
-            password: str
-            host: str
-
-        @dataclass
-        class Cfg:
-            database: DbConfig
-
-        paths = build_secret_paths(Cfg)
-        assert paths == frozenset({"database.password"})
-
-    def test_extra_patterns(self):
-        @dataclass
-        class Cfg:
-            my_custom_field: str
-            host: str
-
-        paths = build_secret_paths(Cfg, extra_patterns=("custom",))
-        assert paths == frozenset({"my_custom_field"})
-
-    def test_caching(self):
-        @dataclass
-        class Cfg:
-            password: str
-
-        paths1 = build_secret_paths(Cfg)
-        paths2 = build_secret_paths(Cfg)
-        assert paths1 is paths2
 
 
 class TestMaskJsonValue:
@@ -167,7 +72,7 @@ class TestMaskJsonValue:
         assert result["normal_field"] == "aB*****mZ"
 
     def test_no_masking_without_heuristic(self):
-        with patch("dature.secret_masking._heuristic_detector", None):
+        with patch("dature.masking.masking._heuristic_detector", None):
             data = {"field": "some_normal_value"}
             secret_paths: frozenset[str] = frozenset()
             result = mask_json_value(data, secret_paths=secret_paths)
@@ -260,7 +165,7 @@ class TestMaskEnvLine:
 
 class TestGracefulDegradation:
     def test_no_masking_without_detector(self):
-        with patch("dature.secret_masking._heuristic_detector", None):
+        with patch("dature.masking.masking._heuristic_detector", None):
             data = {"field": "aB3xK9mZ_looks_random"}
             result = mask_json_value(data, secret_paths=frozenset())
             assert result["field"] == "aB3xK9mZ_looks_random"

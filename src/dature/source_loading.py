@@ -9,9 +9,9 @@ from dature.field_path import FieldPath
 from dature.load_report import SourceEntry
 from dature.loader_resolver import resolve_loader_class
 from dature.loading_context import apply_skip_invalid, build_error_ctx
+from dature.masking.masking import mask_json_value
 from dature.metadata import LoadMetadata, MergeMetadata
 from dature.protocols import DataclassInstance, LoaderProtocol
-from dature.secret_masking import mask_json_value
 from dature.skip_field_provider import FilterResult
 from dature.sources_loader.resolver import resolve_loader
 from dature.types import ExpandEnvVarsMode, JSONValue

@@ -17,16 +17,16 @@ from dature.load_report import (
     get_load_report,
 )
 from dature.loading_context import build_error_ctx, ensure_retort, make_validating_post_init, merge_fields
-from dature.metadata import FieldMergeStrategy, MergeMetadata, MergeStrategy
-from dature.predicate import ResolvedFieldGroup, build_field_group_paths, build_field_merge_map
-from dature.protocols import DataclassInstance, LoaderProtocol
-from dature.secret_masking import (
-    build_secret_paths,
+from dature.masking.detection import build_secret_paths
+from dature.masking.masking import (
     mask_field_origins,
     mask_json_value,
     mask_source_entries,
     mask_value,
 )
+from dature.metadata import FieldMergeStrategy, MergeMetadata, MergeStrategy
+from dature.predicate import ResolvedFieldGroup, build_field_group_paths, build_field_merge_map
+from dature.protocols import DataclassInstance, LoaderProtocol
 from dature.source_loading import load_sources, resolve_expand_env_vars
 from dature.sources_loader.resolver import resolve_loader
 from dature.types import FieldMergeCallable, JSONValue

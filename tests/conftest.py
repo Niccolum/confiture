@@ -10,6 +10,8 @@ from unittest.mock import patch
 import pytest
 from adaptix.load_error import ValidationLoadError
 
+from dature.config import _ConfigProxy
+
 
 def _collect_validation_errors(
     exc: BaseException,
@@ -198,3 +200,10 @@ def block_import(_clean_dature_modules: None) -> Callable[[str], AbstractContext
         return patch("builtins.__import__", side_effect=_blocker)  # type: ignore[return-value]
 
     return _block
+
+
+@pytest.fixture
+def _reset_config() -> Generator[None]:
+    _ConfigProxy.set_instance(None)
+    yield
+    _ConfigProxy.set_instance(None)

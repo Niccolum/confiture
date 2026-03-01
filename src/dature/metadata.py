@@ -80,4 +80,4 @@ class MergeMetadata:
     skip_invalid_fields: bool = False
     expand_env_vars: "ExpandEnvVarsMode" = "default"
     secret_field_names: tuple[str, ...] | None = None
-    mask_secrets: bool = True
+    mask_secrets: bool | None = None

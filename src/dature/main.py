@@ -2,6 +2,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, overload
 
+from dature.config import config
 from dature.merge import merge_load_as_function, merge_make_decorator
 from dature.metadata import LoadMetadata, MergeMetadata
 from dature.patcher import load_as_function, make_decorator
@@ -15,7 +16,7 @@ def load[T](
     /,
     dataclass_: type[T],
     *,
-    debug: bool = False,
+    debug: bool | None = None,
 ) -> T: ...
 
 
@@ -25,8 +26,8 @@ def load(
     /,
     dataclass_: None = None,
     *,
-    cache: bool = True,
-    debug: bool = False,
+    cache: bool | None = None,
+    debug: bool | None = None,
 ) -> Callable[[type[DataclassInstance]], type[DataclassInstance]]: ...
 
 
@@ -35,9 +36,14 @@ def load(
     /,
     dataclass_: type[Any] | None = None,
     *,
-    cache: bool = True,
-    debug: bool = False,
+    cache: bool | None = None,
+    debug: bool | None = None,
 ) -> Any:
+    if cache is None:
+        cache = config.loading.cache
+    if debug is None:
+        debug = config.loading.debug
+
     if isinstance(metadata, tuple):
         metadata = MergeMetadata(sources=metadata)
 

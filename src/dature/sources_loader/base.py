@@ -13,7 +13,9 @@ from adaptix.provider import Provider
 from dature.alias_provider import AliasProvider, resolve_nested_owner
 from dature.env_expand import expand_env_vars
 from dature.field_path import FieldPath
-from dature.fields import ByteSize, PaymentCardNumber, SecretStr
+from dature.fields.byte_size import ByteSize
+from dature.fields.payment_card import PaymentCardNumber
+from dature.fields.secret_str import SecretStr
 from dature.path_finders.base import PathFinder
 from dature.protocols import DataclassInstance, LoaderProtocol, ValidatorProtocol
 from dature.skip_field_provider import ModelToDictProvider, SkipFieldProvider

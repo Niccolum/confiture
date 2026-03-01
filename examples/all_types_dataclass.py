@@ -17,7 +17,9 @@ from urllib.parse import urlparse
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from dature.fields import ByteSize, PaymentCardNumber, SecretStr
+from dature.fields.byte_size import ByteSize
+from dature.fields.payment_card import PaymentCardNumber
+from dature.fields.secret_str import SecretStr
 from dature.types import URL, Base64UrlBytes, Base64UrlStr
 
 

@@ -7,7 +7,8 @@ import pytest
 
 from dature import LoadMetadata, MergeMetadata, get_load_report, load
 from dature.errors import DatureConfigError
-from dature.fields import PaymentCardNumber, SecretStr
+from dature.fields.payment_card import PaymentCardNumber
+from dature.fields.secret_str import SecretStr
 from dature.load_report import FieldOrigin, SourceEntry
 from dature.secret_masking import (
     build_secret_paths,

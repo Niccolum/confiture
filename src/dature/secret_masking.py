@@ -3,7 +3,8 @@ from dataclasses import fields, is_dataclass
 from typing import Annotated, Union, get_args, get_origin, get_type_hints
 
 from dature.config import config
-from dature.fields import PaymentCardNumber, SecretStr
+from dature.fields.payment_card import PaymentCardNumber
+from dature.fields.secret_str import SecretStr
 from dature.load_report import FieldOrigin, SourceEntry
 from dature.types import JSONValue, TypeAnnotation
 

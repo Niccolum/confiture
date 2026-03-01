@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass as stdlib_dataclass
 from dataclasses import fields, is_dataclass
 
+from dature.config import config
 from dature.deep_merge import deep_merge, deep_merge_last_wins, raise_on_conflict
 from dature.error_formatter import enrich_skipped_errors, handle_load_errors
 from dature.errors import DatureConfigError
@@ -31,6 +32,12 @@ from dature.sources_loader.resolver import resolve_loader
 from dature.types import FieldMergeCallable, JSONValue
 
 logger = logging.getLogger("dature")
+
+
+def _resolve_merge_mask_secrets(merge_meta: MergeMetadata) -> bool:
+    if merge_meta.mask_secrets is not None:
+        return merge_meta.mask_secrets
+    return config.masking.mask_secrets
 
 
 def _collect_extra_secret_patterns(merge_meta: MergeMetadata) -> tuple[str, ...]:
@@ -259,7 +266,7 @@ def _load_and_merge[T: DataclassInstance](  # noqa: C901
     debug: bool = False,
 ) -> _MergedData[T]:
     secret_paths: frozenset[str] = frozenset()
-    if merge_meta.mask_secrets:
+    if _resolve_merge_mask_secrets(merge_meta):
         extra_patterns = _collect_extra_secret_patterns(merge_meta)
         secret_paths = build_secret_paths(dataclass_, extra_patterns=extra_patterns)
 
@@ -363,7 +370,7 @@ def merge_load_as_function[T: DataclassInstance](
     merge_meta: MergeMetadata,
     dataclass_: type[T],
     *,
-    debug: bool = False,
+    debug: bool,
 ) -> T:
     data = _load_and_merge(
         merge_meta=merge_meta,
@@ -376,7 +383,7 @@ def merge_load_as_function[T: DataclassInstance](
 
     last_meta = merge_meta.sources[-1]
     secret_paths: frozenset[str] = frozenset()
-    if merge_meta.mask_secrets:
+    if _resolve_merge_mask_secrets(merge_meta):
         extra_patterns = _collect_extra_secret_patterns(merge_meta)
         secret_paths = build_secret_paths(dataclass_, extra_patterns=extra_patterns)
     last_error_ctx = build_error_ctx(last_meta, dataclass_.__name__, secret_paths=secret_paths)
@@ -422,7 +429,7 @@ class _MergePatchContext:
         self.validation_loader: Callable[[JSONValue], DataclassInstance] = validating_retort.get_loader(cls)
 
         self.secret_paths: frozenset[str] = frozenset()
-        if merge_meta.mask_secrets:
+        if _resolve_merge_mask_secrets(merge_meta):
             extra_patterns = _collect_extra_secret_patterns(merge_meta)
             self.secret_paths = build_secret_paths(cls, extra_patterns=extra_patterns)
 
@@ -483,8 +490,8 @@ def _make_merge_new_init(ctx: _MergePatchContext) -> Callable[..., None]:
 def merge_make_decorator(
     merge_meta: MergeMetadata,
     *,
-    cache: bool = True,
-    debug: bool = False,
+    cache: bool,
+    debug: bool,
 ) -> Callable[[type[DataclassInstance]], type[DataclassInstance]]:
     def decorator(cls: type[DataclassInstance]) -> type[DataclassInstance]:
         if not is_dataclass(cls):

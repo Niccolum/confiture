@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from dature.config import config
 from dature.error_formatter import ErrorContext, handle_load_errors, read_file_content
 from dature.errors import DatureConfigError, SourceLoadError, SourceLocation
 from dature.field_path import FieldPath
@@ -54,7 +55,9 @@ def resolve_skip_invalid(
 def resolve_mask_secrets(source_meta: LoadMetadata, merge_meta: MergeMetadata) -> bool:
     if source_meta.mask_secrets is not None:
         return source_meta.mask_secrets
-    return merge_meta.mask_secrets
+    if merge_meta.mask_secrets is not None:
+        return merge_meta.mask_secrets
+    return config.masking.mask_secrets
 
 
 def resolve_secret_field_names(source_meta: LoadMetadata, merge_meta: MergeMetadata) -> tuple[str, ...]:

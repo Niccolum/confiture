@@ -2,6 +2,7 @@ import types
 from dataclasses import fields, is_dataclass
 from typing import Annotated, Union, get_args, get_origin, get_type_hints
 
+from dature.config import config
 from dature.fields import PaymentCardNumber, SecretStr
 from dature.load_report import FieldOrigin, SourceEntry
 from dature.types import JSONValue, TypeAnnotation
@@ -13,34 +14,15 @@ try:
 except ImportError:
     _heuristic_detector = None
 
-MASK_CHAR = "*"
-_MIN_VISIBLE_CHARS = 2
-_MIN_LENGTH_FOR_PARTIAL_MASK = 5
-_FIXED_MASK_LENGTH = 5
-_FULL_MASK = MASK_CHAR * _FIXED_MASK_LENGTH
-_MIN_HEURISTIC_LENGTH = 8
-
-DEFAULT_SECRET_PATTERNS: tuple[str, ...] = (
-    "password",
-    "passwd",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "api_secret",
-    "access_key",
-    "private_key",
-    "auth",
-    "credential",
-)
-
 _secret_paths_cache: dict[tuple[type, tuple[str, ...]], frozenset[str]] = {}
 
 
 def mask_value(value: str) -> str:
-    if len(value) < _MIN_LENGTH_FOR_PARTIAL_MASK:
-        return _FULL_MASK
-    return value[:_MIN_VISIBLE_CHARS] + _FULL_MASK + value[-_MIN_VISIBLE_CHARS:]
+    cfg = config.masking
+    full_mask = cfg.mask_char * cfg.fixed_mask_length
+    if len(value) < cfg.min_length_for_partial_mask:
+        return full_mask
+    return value[: cfg.min_visible_chars] + full_mask + value[-cfg.min_visible_chars :]
 
 
 def _is_secret_type(field_type: TypeAnnotation) -> bool:
@@ -134,7 +116,7 @@ def build_secret_paths(
     if cache_key in _secret_paths_cache:
         return _secret_paths_cache[cache_key]
 
-    all_patterns = DEFAULT_SECRET_PATTERNS + extra_patterns
+    all_patterns = config.masking.secret_field_names + extra_patterns
     result: set[str] = set()
 
     _walk_dataclass_fields(
@@ -253,7 +235,7 @@ def mask_source_entries(
 
 
 def _is_random_string(value: str) -> bool:
-    if len(value) < _MIN_HEURISTIC_LENGTH:
+    if len(value) < config.masking.min_heuristic_length:
         return False
 
     if _heuristic_detector is None:

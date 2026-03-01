@@ -4,6 +4,7 @@ from dataclasses import asdict, fields, is_dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from dature.config import config
 from dature.error_formatter import enrich_skipped_errors, handle_load_errors
 from dature.errors import DatureConfigError
 from dature.load_report import FieldOrigin, LoadReport, SourceEntry, attach_load_report
@@ -24,6 +25,12 @@ if TYPE_CHECKING:
     from adaptix import Retort
 
 logger = logging.getLogger("dature")
+
+
+def _resolve_single_mask_secrets(metadata: LoadMetadata) -> bool:
+    if metadata.mask_secrets is not None:
+        return metadata.mask_secrets
+    return config.masking.mask_secrets
 
 
 def _log_single_source_load(
@@ -123,7 +130,7 @@ class _PatchContext:
         self.loader_type = loader_class.display_name
 
         self.secret_paths: frozenset[str] = frozenset()
-        if metadata.mask_secrets is None or metadata.mask_secrets:
+        if _resolve_single_mask_secrets(metadata):
             extra_patterns = metadata.secret_field_names or ()
             self.secret_paths = build_secret_paths(cls, extra_patterns=extra_patterns)
 
@@ -310,8 +317,8 @@ def make_decorator(
     loader_instance: LoaderProtocol,
     file_path: Path,
     metadata: LoadMetadata,
-    cache: bool = True,
-    debug: bool = False,
+    cache: bool,
+    debug: bool,
 ) -> Callable[[type[DataclassInstance]], type[DataclassInstance]]:
     def decorator(cls: type[DataclassInstance]) -> type[DataclassInstance]:
         if not is_dataclass(cls):

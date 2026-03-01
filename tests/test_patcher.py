@@ -16,7 +16,13 @@ class TestMakeDecorator:
         json_file.write_text('{"name": "test"}')
         metadata = LoadMetadata(file_=str(json_file))
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
 
         with pytest.raises(TypeError, match="must be a dataclass"):
 
@@ -34,7 +40,13 @@ class TestMakeDecorator:
             name: str
 
         original_init = Config.__init__
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         assert Config.__init__ is not original_init
@@ -48,7 +60,13 @@ class TestMakeDecorator:
         class Config:
             name: str
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         assert hasattr(Config, "__post_init__")
@@ -63,7 +81,13 @@ class TestMakeDecorator:
             name: str
             port: int
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         config = Config()
@@ -80,7 +104,13 @@ class TestMakeDecorator:
             name: str
             port: int
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         config = Config(name="overridden")
@@ -96,7 +126,13 @@ class TestMakeDecorator:
         class Config:
             name: str
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         result = decorator(Config)
 
         assert result is Config
@@ -115,7 +151,13 @@ class TestMakeDecorator:
             def __post_init__(self):
                 post_init_called.append(True)
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         Config()
@@ -133,7 +175,13 @@ class TestCache:
             name: str
             port: int
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata, cache=True)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         first = Config()
@@ -154,7 +202,13 @@ class TestCache:
             name: str
             port: int
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata, cache=False)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=False,
+            debug=False,
+        )
         decorator(Config)
 
         first = Config()
@@ -175,7 +229,13 @@ class TestCache:
             name: str
             port: int
 
-        decorator = make_decorator(loader_instance=JsonLoader(), file_path=json_file, metadata=metadata, cache=True)
+        decorator = make_decorator(
+            loader_instance=JsonLoader(),
+            file_path=json_file,
+            metadata=metadata,
+            cache=True,
+            debug=False,
+        )
         decorator(Config)
 
         first = Config()

@@ -1,3 +1,4 @@
+from dature.config import configure
 from dature.field_path import F
 from dature.load_report import get_load_report
 from dature.main import load
@@ -11,6 +12,7 @@ __all__ = [
     "MergeMetadata",
     "MergeRule",
     "MergeStrategy",
+    "configure",
     "get_load_report",
     "load",
 ]

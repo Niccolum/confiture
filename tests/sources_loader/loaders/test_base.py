@@ -5,7 +5,9 @@ from urllib.parse import urlparse
 
 import pytest
 
-from dature.fields import ByteSize, PaymentCardNumber, SecretStr
+from dature.fields.byte_size import ByteSize
+from dature.fields.payment_card import PaymentCardNumber
+from dature.fields.secret_str import SecretStr
 from dature.sources_loader.loaders.base import (
     base64url_bytes_from_string,
     base64url_str_from_string,

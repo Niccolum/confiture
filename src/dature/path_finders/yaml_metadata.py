@@ -5,7 +5,7 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.docinfo import Version
 from ruamel.yaml.scalarstring import ScalarString
 
-from dature.errors import LineRange
+from dature.errors.exceptions import LineRange
 
 
 def build_yaml_line_map(content: str, yaml_version: Version) -> dict[tuple[str, ...], LineRange]:

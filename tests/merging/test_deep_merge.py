@@ -1,0 +1,162 @@
+"""Tests for deep merge algorithms and conflict detection."""
+
+import pytest
+
+from dature.merging.deep_merge import deep_merge, deep_merge_first_wins, deep_merge_last_wins
+from dature.metadata import MergeStrategy
+
+
+class TestDeepMerge:
+    @pytest.mark.parametrize(
+        ("base", "override", "strategy", "expected"),
+        [
+            pytest.param(
+                {"a": 1, "b": 2},
+                {"b": 3, "c": 4},
+                MergeStrategy.LAST_WINS,
+                {"a": 1, "b": 3, "c": 4},
+                id="flat_last_wins",
+            ),
+            pytest.param(
+                {"a": 1, "b": 2},
+                {"b": 3, "c": 4},
+                MergeStrategy.FIRST_WINS,
+                {"a": 1, "b": 2, "c": 4},
+                id="flat_first_wins",
+            ),
+            pytest.param(
+                {"db": {"host": "localhost", "port": 5432}},
+                {"db": {"host": "prod-host", "name": "mydb"}},
+                MergeStrategy.LAST_WINS,
+                {"db": {"host": "prod-host", "port": 5432, "name": "mydb"}},
+                id="nested_last_wins",
+            ),
+            pytest.param(
+                {"db": {"host": "localhost", "port": 5432}},
+                {"db": {"host": "prod-host", "name": "mydb"}},
+                MergeStrategy.FIRST_WINS,
+                {"db": {"host": "localhost", "port": 5432, "name": "mydb"}},
+                id="nested_first_wins",
+            ),
+            pytest.param(
+                {"a": {"b": {"c": 1, "d": 2}}},
+                {"a": {"b": {"c": 99, "e": 3}}},
+                MergeStrategy.LAST_WINS,
+                {"a": {"b": {"c": 99, "d": 2, "e": 3}}},
+                id="deeply_nested",
+            ),
+            pytest.param(
+                {"tags": ["a", "b"]},
+                {"tags": ["c"]},
+                MergeStrategy.LAST_WINS,
+                {"tags": ["c"]},
+                id="lists_replaced_entirely",
+            ),
+            pytest.param(
+                {},
+                {"a": 1},
+                MergeStrategy.LAST_WINS,
+                {"a": 1},
+                id="empty_base",
+            ),
+            pytest.param(
+                {"a": 1},
+                {},
+                MergeStrategy.LAST_WINS,
+                {"a": 1},
+                id="empty_override",
+            ),
+            pytest.param(
+                {},
+                {},
+                MergeStrategy.LAST_WINS,
+                {},
+                id="both_empty",
+            ),
+            pytest.param(
+                "old",
+                "new",
+                MergeStrategy.LAST_WINS,
+                "new",
+                id="scalar_last_wins",
+            ),
+            pytest.param(
+                "old",
+                "new",
+                MergeStrategy.FIRST_WINS,
+                "old",
+                id="scalar_first_wins",
+            ),
+            pytest.param(
+                {"a": None},
+                {"a": 1},
+                MergeStrategy.LAST_WINS,
+                {"a": 1},
+                id="none_value_last_wins",
+            ),
+            pytest.param(
+                {"a": None},
+                {"a": 1},
+                MergeStrategy.FIRST_WINS,
+                {"a": None},
+                id="none_value_first_wins",
+            ),
+            pytest.param(
+                {"a": {"nested": 1}},
+                {"a": "scalar"},
+                MergeStrategy.LAST_WINS,
+                {"a": "scalar"},
+                id="dict_vs_scalar_last_wins",
+            ),
+            pytest.param(
+                {"a": "scalar"},
+                {"a": {"nested": 1}},
+                MergeStrategy.LAST_WINS,
+                {"a": {"nested": 1}},
+                id="scalar_vs_dict_last_wins",
+            ),
+            pytest.param(
+                {"a": {"nested": 1}},
+                {"a": "scalar"},
+                MergeStrategy.FIRST_WINS,
+                {"a": {"nested": 1}},
+                id="dict_vs_scalar_first_wins",
+            ),
+        ],
+    )
+    def test_merge(self, base, override, strategy, expected):
+        assert deep_merge(base, override, strategy=strategy) == expected
+
+    def test_raise_on_conflict_strategy_raises_value_error(self):
+        with pytest.raises(ValueError, match="RAISE_ON_CONFLICT"):
+            deep_merge({"a": 1}, {"a": 2}, strategy=MergeStrategy.RAISE_ON_CONFLICT)
+
+
+class TestDeepMergeLastWins:
+    @pytest.mark.parametrize(
+        ("base", "override", "expected"),
+        [
+            pytest.param("old", "new", "new", id="strings"),
+            pytest.param(1, 2, 2, id="ints"),
+            pytest.param([1], [2], [2], id="lists"),
+            pytest.param({"a": 1}, "scalar", "scalar", id="dict_vs_scalar"),
+            pytest.param("scalar", {"a": 1}, {"a": 1}, id="scalar_vs_dict"),
+        ],
+    )
+    def test_non_dict_returns_override(self, base, override, expected):
+        assert deep_merge_last_wins(base, override) == expected
+
+
+class TestDeepMergeFirstWins:
+    @pytest.mark.parametrize(
+        ("base", "override", "expected"),
+        [
+            pytest.param("old", "new", "old", id="strings"),
+            pytest.param(1, 2, 1, id="ints"),
+            pytest.param([1], [2], [1], id="lists"),
+            pytest.param({"a": 1}, "scalar", {"a": 1}, id="dict_vs_scalar"),
+            pytest.param("scalar", {"a": 1}, "scalar", id="scalar_vs_dict"),
+        ],
+    )
+    def test_non_dict_returns_base(self, base, override, expected):
+        assert deep_merge_first_wins(base, override) == expected

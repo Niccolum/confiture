@@ -3,7 +3,7 @@ from typing import Annotated, get_args, get_origin
 from adaptix import P, validator
 from adaptix.provider import Provider
 
-from dature.alias_provider import resolve_nested_owner
+from dature.expansion.alias_provider import resolve_nested_owner
 from dature.field_path import FieldPath
 from dature.protocols import DataclassInstance, ValidatorProtocol
 from dature.types import FieldValidators

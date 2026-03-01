@@ -1,4 +1,4 @@
-from dature.errors import LineRange
+from dature.errors.exceptions import LineRange
 from dature.path_finders.base import PathFinder
 from dature.path_finders.ini_metadata import MetadataConfigParser
 

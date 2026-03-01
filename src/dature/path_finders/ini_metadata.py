@@ -1,7 +1,7 @@
 import configparser
 import sys
 
-from dature.errors import LineRange
+from dature.errors.exceptions import LineRange
 
 if sys.version_info >= (3, 13):
 

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from dature.loader_resolver import resolve_loader_class
+from dature.loading.resolver import resolve_loader_class
 
 if TYPE_CHECKING:
     from dature.field_path import FieldPath

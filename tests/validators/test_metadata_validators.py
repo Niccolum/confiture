@@ -6,7 +6,7 @@ from typing import Annotated
 import pytest
 
 from dature import LoadMetadata, load
-from dature.errors import DatureConfigError
+from dature.errors.exceptions import DatureConfigError
 from dature.field_path import F
 from dature.validators.number import Ge, Gt, Lt
 from dature.validators.root import RootValidator

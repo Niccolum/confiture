@@ -4,10 +4,8 @@ from dataclasses import dataclass as stdlib_dataclass
 from dataclasses import fields, is_dataclass
 
 from dature.config import config
-from dature.deep_merge import deep_merge, deep_merge_last_wins, raise_on_conflict
 from dature.errors.exceptions import DatureConfigError
 from dature.errors.formatter import enrich_skipped_errors, handle_load_errors
-from dature.field_group import FieldGroupContext, validate_field_groups
 from dature.load_report import (
     FieldOrigin,
     LoadReport,
@@ -24,8 +22,10 @@ from dature.masking.masking import (
     mask_source_entries,
     mask_value,
 )
+from dature.merging.deep_merge import deep_merge, deep_merge_last_wins, raise_on_conflict
+from dature.merging.field_group import FieldGroupContext, validate_field_groups
+from dature.merging.predicate import ResolvedFieldGroup, build_field_group_paths, build_field_merge_map
 from dature.metadata import FieldMergeStrategy, MergeMetadata, MergeStrategy
-from dature.predicate import ResolvedFieldGroup, build_field_group_paths, build_field_merge_map
 from dature.protocols import DataclassInstance, LoaderProtocol
 from dature.source_loading import load_sources, resolve_expand_env_vars
 from dature.sources_loader.resolver import resolve_loader

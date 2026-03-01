@@ -10,8 +10,8 @@ from dature.errors.formatter import handle_load_errors
 from dature.errors.location import ErrorContext
 from dature.field_path import FieldPath
 from dature.loader_resolver import resolve_loader_class
+from dature.merging.predicate import extract_field_path
 from dature.metadata import LoadMetadata
-from dature.predicate import extract_field_path
 from dature.protocols import DataclassInstance, LoaderProtocol
 from dature.skip_field_provider import FilterResult, filter_invalid_fields
 from dature.types import JSONValue

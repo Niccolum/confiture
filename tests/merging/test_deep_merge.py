@@ -2,7 +2,7 @@
 
 import pytest
 
-from dature.deep_merge import deep_merge, deep_merge_first_wins, deep_merge_last_wins
+from dature.merging.deep_merge import deep_merge, deep_merge_first_wins, deep_merge_last_wins
 from dature.metadata import MergeStrategy
 
 

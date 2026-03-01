@@ -5,8 +5,8 @@ from dataclasses import dataclass
 import pytest
 
 from dature.field_path import F
+from dature.merging.predicate import build_field_merge_map, extract_field_path
 from dature.metadata import FieldMergeStrategy, MergeRule
-from dature.predicate import build_field_merge_map, extract_field_path
 
 
 class TestExtractFieldPath:

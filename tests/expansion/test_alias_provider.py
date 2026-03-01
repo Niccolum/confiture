@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from dature.alias_provider import AliasEntry, _build_alias_map, _transform_dict
+from dature.expansion.alias_provider import AliasEntry, _build_alias_map, _transform_dict
 from dature.field_path import F, FieldPath
 
 

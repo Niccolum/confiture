@@ -6,7 +6,7 @@ from typing import cast
 from adaptix import loader
 from adaptix.provider import Provider
 
-from dature.env_expand import expand_env_vars
+from dature.expansion.env_expand import expand_env_vars
 from dature.path_finders.ini_ import TablePathFinder
 from dature.sources_loader.base import BaseLoader
 from dature.sources_loader.loaders import (

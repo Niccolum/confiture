@@ -1,12 +1,14 @@
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from dature.sources_loader.docker_secrets import DockerSecretsLoader
 from dature.sources_loader.env_ import EnvFileLoader, EnvLoader
 from dature.sources_loader.ini_ import IniLoader
 from dature.sources_loader.json_ import JsonLoader
+from dature.types import ExpandEnvVarsMode
 
 if TYPE_CHECKING:
+    from dature.metadata import LoadMetadata
     from dature.protocols import LoaderProtocol
 
 SUPPORTED_EXTENSIONS = (".cfg", ".env", ".ini", ".json", ".json5", ".toml", ".yaml", ".yml")
@@ -84,3 +86,27 @@ def resolve_loader_class(
         return EnvFileLoader
 
     return _resolve_by_extension(file_path.suffix.lower())
+
+
+def resolve_loader(
+    metadata: "LoadMetadata",
+    *,
+    expand_env_vars: ExpandEnvVarsMode | None = None,
+) -> "LoaderProtocol":
+    loader_class = resolve_loader_class(metadata.loader, metadata.file_)
+
+    resolved_expand = expand_env_vars or metadata.expand_env_vars or "default"
+
+    kwargs: dict[str, Any] = {
+        "prefix": metadata.prefix,
+        "name_style": metadata.name_style,
+        "field_mapping": metadata.field_mapping,
+        "root_validators": metadata.root_validators,
+        "validators": metadata.validators,
+        "expand_env_vars": resolved_expand,
+    }
+
+    if issubclass(loader_class, (EnvLoader, DockerSecretsLoader)):
+        kwargs["split_symbols"] = metadata.split_symbols
+
+    return loader_class(**kwargs)

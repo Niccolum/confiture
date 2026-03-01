@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Any, overload
 
 from dature.config import config
-from dature.merge import merge_load_as_function, merge_make_decorator
+from dature.loading.multi import merge_load_as_function, merge_make_decorator
+from dature.loading.resolver import resolve_loader
+from dature.loading.single import load_as_function, make_decorator
 from dature.metadata import LoadMetadata, MergeMetadata
-from dature.patcher import load_as_function, make_decorator
 from dature.protocols import DataclassInstance
-from dature.sources_loader.resolver import resolve_loader
 
 
 @overload

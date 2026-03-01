@@ -9,7 +9,7 @@ from adaptix import Retort
 from dature.errors.formatter import handle_load_errors
 from dature.errors.location import ErrorContext
 from dature.field_path import FieldPath
-from dature.loader_resolver import resolve_loader_class
+from dature.loading.resolver import resolve_loader_class
 from dature.merging.predicate import extract_field_path
 from dature.metadata import LoadMetadata
 from dature.protocols import DataclassInstance, LoaderProtocol

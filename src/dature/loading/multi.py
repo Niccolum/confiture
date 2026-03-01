@@ -14,7 +14,9 @@ from dature.load_report import (
     compute_field_origins,
     get_load_report,
 )
-from dature.loading_context import build_error_ctx, ensure_retort, make_validating_post_init, merge_fields
+from dature.loading.context import build_error_ctx, ensure_retort, make_validating_post_init, merge_fields
+from dature.loading.resolver import resolve_loader
+from dature.loading.source_loading import load_sources, resolve_expand_env_vars
 from dature.masking.detection import build_secret_paths
 from dature.masking.masking import (
     mask_field_origins,
@@ -27,8 +29,6 @@ from dature.merging.field_group import FieldGroupContext, validate_field_groups
 from dature.merging.predicate import ResolvedFieldGroup, build_field_group_paths, build_field_merge_map
 from dature.metadata import FieldMergeStrategy, MergeMetadata, MergeStrategy
 from dature.protocols import DataclassInstance, LoaderProtocol
-from dature.source_loading import load_sources, resolve_expand_env_vars
-from dature.sources_loader.resolver import resolve_loader
 from dature.types import FieldMergeCallable, JSONValue
 
 logger = logging.getLogger("dature")

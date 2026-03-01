@@ -1,4 +1,4 @@
-"""Tests for source loading — skip broken sources, empty sources."""
+"""Tests for loading/source_loading.py — skip broken sources, expand env vars."""
 
 from dataclasses import dataclass
 from pathlib import Path

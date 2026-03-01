@@ -1,4 +1,4 @@
-"""Tests for merge functionality — multi-source config loading."""
+"""Tests for loading/multi.py — multi-source config loading."""
 
 from dataclasses import dataclass
 from pathlib import Path

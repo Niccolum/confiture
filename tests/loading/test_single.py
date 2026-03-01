@@ -1,12 +1,12 @@
-"""Tests for patcher.py."""
+"""Tests for loading/single.py."""
 
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
+from dature.loading.single import load_as_function, make_decorator
 from dature.metadata import LoadMetadata
-from dature.patcher import load_as_function, make_decorator
 from dature.sources_loader.json_ import JsonLoader
 
 

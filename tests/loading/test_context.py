@@ -1,9 +1,9 @@
-"""Tests for loading_context.py."""
+"""Tests for loading/context.py."""
 
 from dataclasses import dataclass, fields
 from typing import Any
 
-from dature.loading_context import merge_fields
+from dature.loading.context import merge_fields
 
 
 class TestMergeFields:

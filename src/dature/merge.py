@@ -5,8 +5,8 @@ from dataclasses import fields, is_dataclass
 
 from dature.config import config
 from dature.deep_merge import deep_merge, deep_merge_last_wins, raise_on_conflict
-from dature.error_formatter import enrich_skipped_errors, handle_load_errors
-from dature.errors import DatureConfigError
+from dature.errors.exceptions import DatureConfigError
+from dature.errors.formatter import enrich_skipped_errors, handle_load_errors
 from dature.field_group import FieldGroupContext, validate_field_groups
 from dature.load_report import (
     FieldOrigin,

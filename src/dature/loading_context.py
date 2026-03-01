@@ -6,7 +6,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from adaptix import Retort
 
-from dature.error_formatter import ErrorContext, handle_load_errors
+from dature.errors.formatter import handle_load_errors
+from dature.errors.location import ErrorContext
 from dature.field_path import FieldPath
 from dature.loader_resolver import resolve_loader_class
 from dature.metadata import LoadMetadata

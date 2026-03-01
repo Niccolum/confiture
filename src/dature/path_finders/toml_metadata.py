@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, cast
 import toml_rs
 from toml_rs._lib import TomlVersion
 
-from dature.errors import LineRange
+from dature.errors.exceptions import LineRange
 
 if TYPE_CHECKING:
     from toml_rs._toml_rs import KeyMeta

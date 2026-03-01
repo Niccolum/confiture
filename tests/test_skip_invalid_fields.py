@@ -9,7 +9,7 @@ import pytest
 from adaptix import Retort
 
 from dature import F, LoadMetadata, MergeMetadata, MergeStrategy, load
-from dature.errors import DatureConfigError
+from dature.errors.exceptions import DatureConfigError
 from dature.skip_field_provider import (
     ModelToDictProvider,
     SkipFieldProvider,

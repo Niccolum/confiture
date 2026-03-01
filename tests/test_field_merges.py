@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from dature import FieldMergeStrategy, LoadMetadata, MergeMetadata, MergeRule, MergeStrategy, load
-from dature.errors import MergeConflictError
+from dature.errors.exceptions import MergeConflictError
 from dature.field_path import F
 
 

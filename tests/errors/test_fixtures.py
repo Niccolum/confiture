@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 import pytest
 
 from dature import LoadMetadata, load
-from dature.errors import DatureConfigError
+from dature.errors.exceptions import DatureConfigError
 from dature.sources_loader.yaml_ import Yaml11Loader, Yaml12Loader
 from dature.validators.number import Ge, Le
 from dature.validators.sequence import MinItems, UniqueItems
@@ -52,7 +52,7 @@ class ValidationErrorConfig:
     address: Address
 
 
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 
 ALL_SOURCES = [
     ("errors.json", {}),

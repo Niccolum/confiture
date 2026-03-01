@@ -1,5 +1,5 @@
-from dature.error_formatter import ErrorContext, resolve_source_location
-from dature.errors import MergeConflictError, MergeConflictFieldError, SourceLocation
+from dature.errors.exceptions import MergeConflictError, MergeConflictFieldError, SourceLocation
+from dature.errors.location import ErrorContext, resolve_source_location
 from dature.metadata import FieldMergeStrategy, MergeStrategy
 from dature.types import JSONValue
 

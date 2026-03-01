@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from dature.errors import FieldGroupError, FieldGroupViolationError
+from dature.errors.exceptions import FieldGroupError, FieldGroupViolationError
 from dature.predicate import ResolvedFieldGroup
 from dature.types import JSONValue
 

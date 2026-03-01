@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from dature.config import config
-from dature.error_formatter import enrich_skipped_errors, handle_load_errors
-from dature.errors import DatureConfigError
+from dature.errors.exceptions import DatureConfigError
+from dature.errors.formatter import enrich_skipped_errors, handle_load_errors
 from dature.load_report import FieldOrigin, LoadReport, SourceEntry, attach_load_report
 from dature.loader_resolver import resolve_loader_class
 from dature.loading_context import (

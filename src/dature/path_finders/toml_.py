@@ -1,6 +1,6 @@
 from toml_rs._lib import TomlVersion
 
-from dature.errors import LineRange
+from dature.errors.exceptions import LineRange
 from dature.path_finders.base import PathFinder
 from dature.path_finders.toml_metadata import build_toml_line_map
 

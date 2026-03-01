@@ -1,7 +1,7 @@
 import os
 import re
 
-from dature.errors import EnvVarExpandError, MissingEnvVarError
+from dature.errors.exceptions import EnvVarExpandError, MissingEnvVarError
 from dature.types import ExpandEnvVarsMode, JSONValue
 
 # $VAR, ${VAR}, ${VAR:-default}, %VAR%, $$, %%

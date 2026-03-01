@@ -1,7 +1,7 @@
 import pytest
 
 from dature.env_expand import expand_env_vars, expand_string
-from dature.errors import EnvVarExpandError
+from dature.errors.exceptions import EnvVarExpandError
 from dature.types import JSONValue
 
 

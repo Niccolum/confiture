@@ -7,7 +7,7 @@ from textwrap import dedent
 import pytest
 
 from dature import FieldGroup, FieldMergeStrategy, LoadMetadata, MergeMetadata, MergeRule, MergeStrategy, load
-from dature.errors import FieldGroupError
+from dature.errors.exceptions import FieldGroupError
 from dature.field_path import F
 
 

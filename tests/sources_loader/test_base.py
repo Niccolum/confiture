@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from dature.errors import EnvVarExpandError
+from dature.errors.exceptions import EnvVarExpandError
 from dature.field_path import F
 from dature.sources_loader.base import BaseLoader
 from dature.sources_loader.json_ import JsonLoader

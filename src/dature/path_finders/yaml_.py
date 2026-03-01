@@ -1,6 +1,6 @@
 from ruamel.yaml.docinfo import Version
 
-from dature.errors import LineRange
+from dature.errors.exceptions import LineRange
 from dature.path_finders.base import PathFinder
 from dature.path_finders.yaml_metadata import build_yaml_line_map
 

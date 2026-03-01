@@ -7,7 +7,7 @@ from textwrap import dedent
 import pytest
 
 from dature import LoadMetadata, MergeMetadata, MergeStrategy, load
-from dature.errors import DatureConfigError, MergeConflictError
+from dature.errors.exceptions import DatureConfigError, MergeConflictError
 
 
 class TestMergeLoadAsFunction:

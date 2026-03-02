@@ -1,6 +1,7 @@
 import logging
 import warnings
 from dataclasses import dataclass
+from typing import Any
 
 from dature.metadata import MergeStrategy
 from dature.types import JSONValue
@@ -95,7 +96,7 @@ def _flatten_dict(
     return result
 
 
-def get_load_report(instance: object) -> LoadReport | None:
+def get_load_report(instance: Any) -> LoadReport | None:  # noqa: ANN401
     report = getattr(instance, _REPORT_ATTR, None)
     if isinstance(report, LoadReport):
         return report
@@ -106,5 +107,5 @@ def get_load_report(instance: object) -> LoadReport | None:
     return None
 
 
-def attach_load_report(target: object, report: LoadReport) -> None:
+def attach_load_report(target: Any, report: LoadReport) -> None:  # noqa: ANN401
     setattr(target, _REPORT_ATTR, report)

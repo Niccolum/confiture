@@ -1,12 +1,12 @@
 from dataclasses import dataclass, fields, is_dataclass
-from typing import TypeVar, get_type_hints, overload
+from typing import Any, TypeVar, get_type_hints, overload
 
 from dature.protocols import DataclassInstance
 
 T = TypeVar("T")
 
 
-def _resolve_field_type(owner: type, parts: tuple[str, ...]) -> type | None:
+def resolve_field_type(owner: type, parts: tuple[str, ...]) -> type | None:
     """Walk the field chain and return the type of the last field, or None if not a dataclass."""
     current = owner
     for part in parts:
@@ -25,7 +25,7 @@ def _validate_field(owner: type, parts: tuple[str, ...], name: str) -> None:
     if not parts:
         target = owner
     else:
-        resolved = _resolve_field_type(owner, parts)
+        resolved = resolve_field_type(owner, parts)
         if resolved is None:
             return
         target = resolved
@@ -77,7 +77,7 @@ class _FieldPathFactory:
     @overload
     def __getitem__(self, owner: str) -> FieldPath: ...
 
-    def __getitem__(self, owner: type | str) -> object:
+    def __getitem__(self, owner: type[Any] | str) -> Any:
         if isinstance(owner, type) and not is_dataclass(owner):
             msg = f"'{owner.__name__}' is not a dataclass"
             raise TypeError(msg)

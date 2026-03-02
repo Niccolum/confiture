@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from adaptix import loader
 from adaptix.provider import Provider
@@ -20,9 +20,9 @@ from dature.sources_loader.loaders import (
 from dature.types import DotSeparatedPath, ExpandEnvVarsMode, FieldMapping, FieldValidators, JSONValue, NameStyle
 
 
-def _set_nested(d: dict[Any, Any], keys: list[str], value: str) -> None:
+def _set_nested(d: dict[str, JSONValue], keys: list[str], value: str) -> None:
     for key in keys[:-1]:
-        d = d.setdefault(key, {})
+        d = cast("dict[str, JSONValue]", d.setdefault(key, {}))
     d[keys[-1]] = value
 
 

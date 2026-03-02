@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from json.decoder import JSONArray, JSONObject, scanstring  # type: ignore[attr-defined]
 from json.scanner import py_make_scanner  # type: ignore[attr-defined]
 from typing import TYPE_CHECKING
@@ -10,6 +11,12 @@ if TYPE_CHECKING:
     from dature.types import JSONValue
 
     _ScanOnce = Callable[[str, int], tuple["JSONValue", int]]
+
+
+@dataclass(frozen=True, slots=True)
+class ExtractedKey:
+    key: str | None
+    position: int
 
 
 def build_json_line_map(content: str) -> dict[tuple[str, ...], LineRange]:
@@ -30,15 +37,15 @@ def build_json_line_map(content: str) -> dict[tuple[str, ...], LineRange]:
         memo: dict[str, str] | None = None,
     ) -> tuple["JSONValue", int]:
         def tracking_scan_once(s: str, idx: int) -> tuple["JSONValue", int]:
-            key, key_start = _extract_key_before_value(s, idx)
-            if key is not None:
-                path_stack.append(key)
+            extracted = _extract_key_before_value(s, idx)
+            if extracted.key is not None:
+                path_stack.append(extracted.key)
 
             obj, end = scan_once(s, idx)
 
-            if key is not None:
+            if extracted.key is not None:
                 line_map[tuple(path_stack)] = LineRange(
-                    start=_char_to_line(key_start),
+                    start=_char_to_line(extracted.position),
                     end=_char_to_line(end - 1),
                 )
                 path_stack.pop()
@@ -77,14 +84,14 @@ def build_json_line_map(content: str) -> dict[tuple[str, ...], LineRange]:
     return line_map
 
 
-def _extract_key_before_value(s: str, val_start: int) -> tuple[str | None, int]:
+def _extract_key_before_value(s: str, val_start: int) -> ExtractedKey:
     """Находит ключ JSON-объекта, отступая назад от позиции начала значения."""
     pos = val_start - 1
     while pos >= 0 and s[pos] in " \t\n\r:":
         pos -= 1
 
     if pos < 0 or s[pos] != '"':
-        return None, val_start
+        return ExtractedKey(key=None, position=val_start)
 
     pos -= 1
     while pos >= 0:
@@ -96,10 +103,7 @@ def _extract_key_before_value(s: str, val_start: int) -> tuple[str | None, int]:
                 check -= 1
             if num_backslashes % 2 == 0:
                 key, _ = scanstring(s, pos + 1, True)  # noqa: FBT003
-                return key, pos
+                return ExtractedKey(key=key, position=pos)
         pos -= 1
 
-    return None, val_start
-    return None, val_start
-    return None, val_start
-    return None, val_start
+    return ExtractedKey(key=None, position=val_start)

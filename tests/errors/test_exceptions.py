@@ -167,9 +167,8 @@ class TestLoadIntegrationErrors:
 
         err = exc_info.value
         assert len(err.exceptions) == 2
-        paths = [e.field_path for e in err.exceptions if isinstance(e, FieldLoadError)]
-        assert ["timeout"] in paths
-        assert ["name"] in paths
+        paths = sorted(e.field_path for e in err.exceptions if isinstance(e, FieldLoadError))
+        assert paths == [["name"], ["timeout"]]
         assert str(err) == dedent(f"""\
             Config loading errors (2)
 

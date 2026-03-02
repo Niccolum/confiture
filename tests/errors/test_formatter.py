@@ -53,9 +53,8 @@ class TestExtractFieldErrors:
         except (AggregateLoadError, LoadError) as exc:
             errors = extract_field_errors(exc)
             assert len(errors) == 2
-            paths = [e.field_path for e in errors]
-            assert ["timeout"] in paths
-            assert ["db", "port"] in paths
+            paths = sorted(e.field_path for e in errors)
+            assert paths == [["db", "port"], ["timeout"]]
 
     def test_multiple_missing_fields(self):
         @dataclass

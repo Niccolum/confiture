@@ -122,12 +122,18 @@ class TestTransformDict:
 
         assert result == {"other": "value"}
 
-    def test_non_dict_returns_as_is(self):
+    @pytest.mark.parametrize(
+        ("input_value", "expected"),
+        [
+            ("string", "string"),
+            (42, 42),
+            (None, None),
+        ],
+    )
+    def test_non_dict_returns_as_is(self, input_value, expected):
         entries = [AliasEntry(field_name="name", aliases=("fullName",))]
 
-        assert _transform_dict("string", entries) == "string"
-        assert _transform_dict(42, entries) == 42
-        assert _transform_dict(None, entries) is None
+        assert _transform_dict(input_value, entries) == expected
 
     def test_fallback_to_second_alias(self):
         entries = [AliasEntry(field_name="name", aliases=("fullName", "userName"))]
@@ -149,4 +155,4 @@ class TestAliasProviderIntegration:
         with pytest.raises(TypeError) as exc_info:
             _build_alias_map(mapping)
 
-        assert "is not a dataclass" in str(exc_info.value)
+        assert str(exc_info.value) == "Intermediate field 'name' of type '<class 'str'>' is not a dataclass"

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields, is_dataclass
-from typing import TYPE_CHECKING, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
-from dature.field_path import FieldPath, _resolve_field_type, validate_field_path_owner
+from dature.field_path import FieldPath, resolve_field_type, validate_field_path_owner
 from dature.metadata import FieldMergeStrategy
 from dature.protocols import DataclassInstance
 
@@ -25,7 +25,7 @@ class FieldMergeMaps:
         return frozenset(self.callable_map.keys())
 
 
-def extract_field_path(predicate: object, dataclass_: type[DataclassInstance] | None = None) -> str:
+def extract_field_path(predicate: Any, dataclass_: type[DataclassInstance] | None = None) -> str:  # noqa: ANN401
     if not isinstance(predicate, FieldPath):
         msg = f"Expected FieldPath, got {type(predicate).__name__}"
         raise TypeError(msg)
@@ -72,9 +72,9 @@ def build_field_group_paths(
         for field in group.fields:
             path = extract_field_path(field, dataclass_)
             if isinstance(field, FieldPath) and isinstance(field.owner, type):
-                resolved_type = _resolve_field_type(field.owner, field.parts)
+                resolved_type = resolve_field_type(field.owner, field.parts)
             else:
-                resolved_type = _resolve_field_type(dataclass_, tuple(path.split(".")))
+                resolved_type = resolve_field_type(dataclass_, tuple(path.split(".")))
             if resolved_type is not None:
                 paths.extend(_expand_dataclass_fields(path, resolved_type))
             else:

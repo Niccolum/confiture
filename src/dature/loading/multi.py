@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass as stdlib_dataclass
 from dataclasses import fields, is_dataclass
+from typing import Any
 
 from dature.config import config
 from dature.errors.exceptions import DatureConfigError
@@ -452,7 +453,7 @@ class _MergePatchContext:
 
 
 def _make_merge_new_init(ctx: _MergePatchContext) -> Callable[..., None]:
-    def new_init(self: DataclassInstance, *args: object, **kwargs: object) -> None:
+    def new_init(self: DataclassInstance, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         if ctx.loading:
             ctx.original_init(self, *args, **kwargs)
             return

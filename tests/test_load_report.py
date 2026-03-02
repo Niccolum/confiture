@@ -287,7 +287,7 @@ class TestGetLoadReportWithoutDebug:
 
         assert result is None
         assert len(w) == 1
-        assert "debug=True" in str(w[0].message)
+        assert str(w[0].message) == "To get LoadReport, pass debug=True to load()"
 
     def test_no_report_without_debug(self, tmp_path: Path):
         json_file = tmp_path / "config.json"
@@ -306,7 +306,7 @@ class TestGetLoadReportWithoutDebug:
 
         assert report is None
         assert len(w) == 1
-        assert "debug=True" in str(w[0].message)
+        assert str(w[0].message) == "To get LoadReport, pass debug=True to load()"
 
 
 class TestDebugLogging:

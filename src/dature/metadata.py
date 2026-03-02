@@ -58,15 +58,15 @@ class LoadMetadata:
 
 @dataclass(frozen=True, slots=True)
 class MergeRule:
-    predicate: object
+    predicate: "FieldPath"
     strategy: "FieldMergeStrategy | FieldMergeCallable"
 
 
 @dataclass(frozen=True, slots=True)
 class FieldGroup:
-    fields: tuple[object, ...]
+    fields: "tuple[FieldPath, ...]"
 
-    def __init__(self, *fields: object) -> None:
+    def __init__(self, *fields: "FieldPath") -> None:
         object.__setattr__(self, "fields", fields)
 
 

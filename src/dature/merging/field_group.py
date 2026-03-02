@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from dature.errors.exceptions import FieldGroupError, FieldGroupViolationError
 from dature.merging.predicate import ResolvedFieldGroup
@@ -14,7 +15,7 @@ class FieldGroupContext:
     dataclass_name: str
 
 
-def _get_nested_value(data: JSONValue, dot_path: str) -> object:
+def _get_nested_value(data: JSONValue, dot_path: str) -> Any:  # noqa: ANN401
     if not isinstance(data, dict):
         return _SENTINEL
     parts = dot_path.split(".")

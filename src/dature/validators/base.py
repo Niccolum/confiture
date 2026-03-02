@@ -1,4 +1,4 @@
-from typing import Annotated, get_args, get_origin
+from typing import Annotated, Any, get_args, get_origin
 
 from adaptix import P, validator
 from adaptix.provider import Provider
@@ -9,7 +9,7 @@ from dature.protocols import DataclassInstance, ValidatorProtocol
 from dature.types import FieldValidators
 
 
-def extract_validators_from_type(field_type: object) -> list[ValidatorProtocol]:
+def extract_validators_from_type(field_type: Any) -> list[ValidatorProtocol]:  # noqa: ANN401
     validators: list[ValidatorProtocol] = []
 
     if get_origin(field_type) is not Annotated:

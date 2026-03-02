@@ -71,7 +71,7 @@ def _mask_raw_value(raw: str) -> str:
             inner_start = 1
             end_idx = stripped.find(quote, inner_start)
             if end_idx == -1:
-                break
+                continue
             inner = stripped[inner_start:end_idx]
             suffix = stripped[end_idx + 1 :]
             return f"{leading_spaces}{quote}{mask_value(inner)}{quote}{suffix}"

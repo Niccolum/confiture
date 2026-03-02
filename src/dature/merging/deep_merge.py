@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from dature.errors.exceptions import MergeConflictError, MergeConflictFieldError, SourceLocation
 from dature.errors.location import ErrorContext, resolve_source_location
 from dature.metadata import FieldMergeStrategy, MergeStrategy
@@ -19,17 +21,23 @@ def _deduplicate_list(items: list[JSONValue]) -> list[JSONValue]:
     return seen
 
 
+@dataclass(frozen=True, slots=True)
+class ListPair:
+    base: list[JSONValue]
+    override: list[JSONValue]
+
+
 def _ensure_both_lists(
     base: JSONValue,
     override: JSONValue,
     strategy_name: str,
-) -> tuple[list[JSONValue], list[JSONValue]]:
+) -> ListPair:
     if not isinstance(base, list) or not isinstance(override, list):
         base_type = type(base).__name__
         override_type = type(override).__name__
         msg = f"{strategy_name} strategy requires both values to be lists, got {base_type} and {override_type}"
         raise TypeError(msg)
-    return base, override
+    return ListPair(base=base, override=override)
 
 
 def _apply_list_merge(
@@ -38,20 +46,20 @@ def _apply_list_merge(
     strategy: FieldMergeStrategy,
 ) -> list[JSONValue]:
     if strategy == FieldMergeStrategy.APPEND:
-        b, o = _ensure_both_lists(base, override, "APPEND")
-        return list(b) + list(o)
+        pair = _ensure_both_lists(base, override, "APPEND")
+        return list(pair.base) + list(pair.override)
 
     if strategy == FieldMergeStrategy.APPEND_UNIQUE:
-        b, o = _ensure_both_lists(base, override, "APPEND_UNIQUE")
-        return _deduplicate_list(list(b) + list(o))
+        pair = _ensure_both_lists(base, override, "APPEND_UNIQUE")
+        return _deduplicate_list(list(pair.base) + list(pair.override))
 
     if strategy == FieldMergeStrategy.PREPEND:
-        b, o = _ensure_both_lists(base, override, "PREPEND")
-        return list(o) + list(b)
+        pair = _ensure_both_lists(base, override, "PREPEND")
+        return list(pair.override) + list(pair.base)
 
     # PREPEND_UNIQUE
-    b, o = _ensure_both_lists(base, override, "PREPEND_UNIQUE")
-    return _deduplicate_list(list(o) + list(b))
+    pair = _ensure_both_lists(base, override, "PREPEND_UNIQUE")
+    return _deduplicate_list(list(pair.override) + list(pair.base))
 
 
 def apply_field_merge(
